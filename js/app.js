@@ -99,6 +99,9 @@ function initializeUI() {
     // Product search
     document.getElementById('product-search').addEventListener('input', debounce(handleProductSearch, 300));
     
+    // UPC Scanner input
+    document.getElementById('upc-scanner-input').addEventListener('keypress', handleUPCScan);
+    
     // Camera scan button
     document.getElementById('btn-camera-scan').addEventListener('click', openCameraScanner);
     
@@ -333,6 +336,44 @@ function handleProductSearch(e) {
     const query = e.target.value;
     const activeCategory = document.querySelector('.category-tab.active').dataset.category;
     loadProducts(activeCategory, query);
+}
+
+async function handleUPCScan(e) {
+    // Only process on Enter key
+    if (e.key !== 'Enter') return;
+    
+    const input = document.getElementById('upc-scanner-input');
+    const upcCode = input.value.trim();
+    
+    if (!upcCode) return;
+    
+    // Search for product by SKU/UPC
+    const products = await db.getAllProducts();
+    const product = products.find(p => 
+        p.sku && p.sku.toLowerCase() === upcCode.toLowerCase()
+    );
+    
+    if (product) {
+        if (product.stock <= 0) {
+            showToast('Producto sin stock disponible', 'warning');
+        } else {
+            // Check if already in cart
+            const cartItem = state.cart.find(item => item.productId === product.id);
+            const maxQty = product.stock - (cartItem ? cartItem.quantity : 0);
+            
+            if (maxQty <= 0) {
+                showToast('No hay más stock disponible', 'warning');
+            } else {
+                addToCart(product, 1);
+            }
+        }
+    } else {
+        showToast(`Producto no encontrado: ${upcCode}`, 'error');
+    }
+    
+    // Clear the input for next scan
+    input.value = '';
+    input.focus();
 }
 
 function handleCategoryFilter(category) {

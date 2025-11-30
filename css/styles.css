@@ -558,6 +558,16 @@ h4 { font-size: 1.125rem; }
     opacity: 1;
 }
 
+/* UPC Scanner Container */
+.upc-scanner-container {
+    padding: var(--spacing-md) var(--spacing-lg);
+    border-bottom: 1px solid var(--gray-100);
+}
+
+.upc-scanner-container .search-container {
+    max-width: 100%;
+}
+
 .cart-items {
     flex: 1;
     overflow-y: auto;
