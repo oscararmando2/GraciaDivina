@@ -99,7 +99,28 @@
                     <div class="pos-cart pos-cart-full">
                         <div class="cart-header">
                             <h3>🛒 Punto de Venta</h3>
-                            <button class="btn-clear-cart" id="clear-cart" title="Limpiar carrito">🗑️</button>
+                            <div class="cart-header-actions">
+                                <!-- Mobile-only hamburger menu for Ventas and Apartados -->
+                                <div class="mobile-menu-container" id="mobile-menu-container">
+                                    <button class="mobile-hamburger-btn" id="mobile-hamburger-btn" title="Menú">
+                                        <span></span>
+                                        <span></span>
+                                        <span></span>
+                                    </button>
+                                    <div class="mobile-dropdown-menu" id="mobile-dropdown-menu">
+                                        <button class="mobile-menu-item" data-page="sales">
+                                            <span class="menu-icon">📊</span>
+                                            <span>Ventas</span>
+                                        </button>
+                                        <button class="mobile-menu-item" data-page="layaways">
+                                            <span class="menu-icon">📋</span>
+                                            <span>Apartados</span>
+                                            <span class="mobile-menu-badge" id="mobile-layaway-badge"></span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <button class="btn-clear-cart" id="clear-cart" title="Limpiar carrito">🗑️</button>
+                            </div>
                         </div>
                         
                         <!-- UPC Scanner Input -->

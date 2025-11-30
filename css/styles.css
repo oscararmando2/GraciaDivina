@@ -2519,8 +2519,129 @@ h4 { font-size: 1.125rem; }
     justify-content: center;
 }
 
+/* ========================================
+   Mobile Hamburger Menu for POS Page
+   ======================================== */
+.mobile-menu-container {
+    display: none;
+    position: relative;
+}
+
+.mobile-hamburger-btn {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+    width: 44px;
+    height: 44px;
+    background: var(--gray-100);
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    padding: var(--spacing-sm);
+    transition: var(--transition-fast);
+}
+
+.mobile-hamburger-btn:hover {
+    background: var(--gray-200);
+}
+
+.mobile-hamburger-btn span {
+    width: 20px;
+    height: 2px;
+    background: var(--gray-700);
+    border-radius: 2px;
+    transition: var(--transition-fast);
+}
+
+.mobile-hamburger-btn.active span:nth-child(1) {
+    transform: rotate(45deg) translate(4px, 4px);
+}
+
+.mobile-hamburger-btn.active span:nth-child(2) {
+    opacity: 0;
+}
+
+.mobile-hamburger-btn.active span:nth-child(3) {
+    transform: rotate(-45deg) translate(4px, -4px);
+}
+
+.mobile-dropdown-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: var(--spacing-sm);
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    min-width: 180px;
+    z-index: 200;
+    overflow: hidden;
+}
+
+.mobile-dropdown-menu.active {
+    display: block;
+    animation: fadeIn 0.2s ease;
+}
+
+.mobile-menu-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    width: 100%;
+    padding: var(--spacing-md) var(--spacing-lg);
+    border: none;
+    background: transparent;
+    font-family: var(--font-body);
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--gray-700);
+    cursor: pointer;
+    transition: var(--transition-fast);
+    text-align: left;
+}
+
+.mobile-menu-item:hover {
+    background: var(--gray-50);
+    color: var(--primary);
+}
+
+.mobile-menu-item:not(:last-child) {
+    border-bottom: 1px solid var(--gray-100);
+}
+
+.menu-icon {
+    font-size: 1.25rem;
+}
+
+.mobile-menu-badge {
+    margin-left: auto;
+    background: var(--danger);
+    color: var(--white);
+    font-size: 0.75rem;
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+}
+
+.mobile-menu-badge:empty {
+    display: none;
+}
+
+.cart-header-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
 /* Responsive adjustments for new layouts */
 @media (max-width: 768px) {
+    .mobile-menu-container {
+        display: block;
+    }
+    
     .pos-cart-full {
         max-width: 100%;
     }
