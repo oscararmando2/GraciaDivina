@@ -12,18 +12,33 @@
  * - Compatibilidad con múltiples dispositivos
  */
 
-// Configuración de Firebase
-// IMPORTANTE: Reemplaza apiKey, messagingSenderId y appId con tus credenciales reales
-// Puedes encontrarlas en: Firebase Console > Configuración del proyecto > General
+// ============================================================================
+// CONFIGURACIÓN DE FIREBASE - DEBES COMPLETAR ESTOS VALORES
+// ============================================================================
+// IMPORTANTE: Reemplaza los valores placeholder con tus credenciales reales de Firebase.
+// 
+// Para obtener las credenciales:
+// 1. Ve a Firebase Console: https://console.firebase.google.com/
+// 2. Selecciona tu proyecto "gracia-divina-c70c6"
+// 3. Ve a Configuración del proyecto (⚙️) > General
+// 4. En "Tus apps", busca la configuración de la app web
+// 5. Copia los valores de apiKey, messagingSenderId y appId
+//
+// NOTA: Sin estas credenciales reales, la sincronización NO funcionará
+// ============================================================================
 const FIREBASE_CONFIG = {
-    apiKey: "TU_API_KEY_AQUI",
+    apiKey: "TU_API_KEY_AQUI",           // Reemplaza con tu apiKey real
     authDomain: "gracia-divina-c70c6.firebaseapp.com",
     projectId: "gracia-divina-c70c6",
     storageBucket: "gracia-divina-c70c6.firebasestorage.app",
-    messagingSenderId: "TU_MESSAGING_SENDER_ID",
-    appId: "TU_APP_ID",
+    messagingSenderId: "TU_MESSAGING_SENDER_ID",  // Reemplaza con tu messagingSenderId real
+    appId: "TU_APP_ID",                           // Reemplaza con tu appId real
     databaseURL: "https://gracia-divina-c70c6-default-rtdb.firebaseio.com"
 };
+
+// Constantes de tiempo (en milisegundos)
+const FIREBASE_INIT_DELAY_MS = 2000;       // Tiempo de espera antes de inicializar Firebase
+const STATUS_UPDATE_INTERVAL_MS = 5000;    // Intervalo para actualizar el indicador de estado
 
 // Mapeo de colecciones IndexedDB a nodos de Realtime Database
 // IndexedDB usa nombres en inglés, Realtime Database usa nombres según las reglas del usuario
@@ -286,7 +301,7 @@ class FirebaseSync {
         const listener = ref.on('value', (snapshot) => {
             const data = snapshot.val();
             if (data) {
-                console.log(`📥 Datos recibidos de ${nodeName}:`, Object.keys(data).length, 'registros');
+                console.log(`📥 Datos recibidos de ${nodeName}`);
                 callback(data);
             }
         }, (error) => {
@@ -859,9 +874,10 @@ function addSyncControls() {
     }
 
     // Actualizar indicador de estado periódicamente
+    // para mantener la información de conexión actualizada
     setInterval(() => {
         updateSyncStatusIndicator();
-    }, 5000);
+    }, STATUS_UPDATE_INTERVAL_MS);
 }
 
 /**
@@ -996,11 +1012,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     addSyncControls();
 
     // Inicializar Firebase después de un pequeño delay
-    // para asegurar que la base de datos local esté lista
+    // para asegurar que la base de datos local (IndexedDB) esté lista
     setTimeout(async () => {
         await firebaseSync.init();
         updateSyncStatusIndicator();
-    }, 2000);
+    }, FIREBASE_INIT_DELAY_MS);
 });
 
 // Exportar para uso en otros módulos
