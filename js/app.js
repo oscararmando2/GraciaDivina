@@ -3,6 +3,11 @@
  */
 
 // ========================================
+// CONSTANTS
+// ========================================
+const MOBILE_BREAKPOINT = 768;
+
+// ========================================
 // APP STATE
 // ========================================
 const state = {
@@ -91,11 +96,26 @@ function initializeUI() {
         item.addEventListener('click', () => navigateTo(item.dataset.page));
     });
     
-    // Sidebar toggle (mobile)
+    // Sidebar toggle (in sidebar header for desktop)
     const sidebarToggle = document.getElementById('sidebar-toggle');
-    sidebarToggle.addEventListener('click', toggleSidebar);
+    if (sidebarToggle) {
+        sidebarToggle.addEventListener('click', toggleSidebar);
+    }
     
-    // Mobile hamburger menu for POS page
+    // Mobile header hamburger menu - opens sidebar
+    const mobileSidebarToggle = document.getElementById('mobile-sidebar-toggle');
+    const sidebarOverlay = document.getElementById('sidebar-overlay');
+    
+    if (mobileSidebarToggle) {
+        mobileSidebarToggle.addEventListener('click', toggleSidebar);
+    }
+    
+    // Close sidebar when clicking overlay
+    if (sidebarOverlay) {
+        sidebarOverlay.addEventListener('click', closeSidebar);
+    }
+    
+    // Mobile hamburger menu for POS page (legacy - now hidden via CSS)
     const mobileHamburgerBtn = document.getElementById('mobile-hamburger-btn');
     const mobileDropdownMenu = document.getElementById('mobile-dropdown-menu');
     
@@ -248,13 +268,40 @@ function navigateTo(page) {
     }
     
     // Close sidebar on mobile
-    if (window.innerWidth <= 768) {
-        document.getElementById('sidebar').classList.remove('open');
+    if (window.innerWidth <= MOBILE_BREAKPOINT) {
+        closeSidebar();
     }
 }
 
 function toggleSidebar() {
-    document.getElementById('sidebar').classList.toggle('open');
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    
+    sidebar.classList.toggle('open');
+    
+    if (overlay) {
+        overlay.classList.toggle('active', sidebar.classList.contains('open'));
+    }
+    
+    // Prevent body scroll when sidebar is open on mobile
+    if (sidebar.classList.contains('open') && window.innerWidth <= MOBILE_BREAKPOINT) {
+        document.body.style.overflow = 'hidden';
+    } else {
+        document.body.style.overflow = '';
+    }
+}
+
+function closeSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    
+    sidebar.classList.remove('open');
+    
+    if (overlay) {
+        overlay.classList.remove('active');
+    }
+    
+    document.body.style.overflow = '';
 }
 
 // ========================================
@@ -920,18 +967,18 @@ async function loadSalesHistory() {
             const profit = sale.totalProfit || 0;
             return `
                 <tr>
-                    <td>${formatDateTime(sale.date)}</td>
-                    <td><strong>${sale.ticketNumber}</strong></td>
-                    <td>${sale.items.length} producto(s)</td>
-                    <td><strong>${formatCurrency(sale.total)}</strong></td>
-                    <td style="color: ${profit >= 0 ? '#10B981' : '#EF4444'}; font-weight: 600;">${formatCurrency(profit)}</td>
-                    <td>
+                    <td data-label="Fecha/Hora">${formatDateTime(sale.date)}</td>
+                    <td data-label="Ticket"><strong>${sale.ticketNumber}</strong></td>
+                    <td data-label="Productos">${sale.items.length} producto(s)</td>
+                    <td data-label="Total"><strong>${formatCurrency(sale.total)}</strong></td>
+                    <td data-label="Ganancia" style="color: ${profit >= 0 ? '#10B981' : '#EF4444'}; font-weight: 600;">${formatCurrency(profit)}</td>
+                    <td data-label="Método">
                         <span class="payment-badge">
                             ${paymentIcons[sale.paymentMethod] || '💰'}
                             ${sale.paymentMethod}
                         </span>
                     </td>
-                    <td>
+                    <td data-label="Acciones">
                         <div class="action-buttons">
                             <button class="btn-icon" onclick="viewSaleDetails(${sale.id})" title="Ver detalles">👁️</button>
                         </div>

@@ -2694,3 +2694,674 @@ h4 { font-size: 1.125rem; }
         padding: var(--spacing-md);
     }
 }
+
+/* ========================================
+   Mobile Header - Always Visible on Mobile
+   ======================================== */
+.mobile-header {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    color: var(--white);
+    z-index: 150;
+    padding: 0 var(--spacing-md);
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: var(--shadow-md);
+}
+
+.mobile-header-hamburger {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+    width: 44px;
+    height: 44px;
+    background: rgba(255, 255, 255, 0.15);
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    padding: var(--spacing-sm);
+    transition: var(--transition-fast);
+}
+
+.mobile-header-hamburger:hover,
+.mobile-header-hamburger:active {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.mobile-header-hamburger span {
+    width: 22px;
+    height: 2px;
+    background: var(--white);
+    border-radius: 2px;
+    transition: var(--transition-fast);
+}
+
+.mobile-header-title {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.mobile-header-icon {
+    font-size: 1.5rem;
+}
+
+.mobile-header-text {
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.mobile-header-spacer {
+    width: 44px;
+}
+
+/* Sidebar overlay for mobile */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 99;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.sidebar-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* ========================================
+   Enhanced Mobile Responsive Design
+   ======================================== */
+@media (max-width: 768px) {
+    /* Show mobile header */
+    .mobile-header {
+        display: flex;
+    }
+    
+    /* Show sidebar overlay */
+    .sidebar-overlay {
+        display: block;
+    }
+    
+    /* Adjust main content for mobile header */
+    .main-content {
+        padding-top: 56px;
+    }
+    
+    /* Hide the sidebar toggle in sidebar header since we have mobile header */
+    .sidebar .sidebar-toggle {
+        display: none;
+    }
+    
+    /* Improve POS page on mobile */
+    #page-pos {
+        padding: 0;
+    }
+    
+    .pos-container-full {
+        height: calc(100dvh - 56px);
+    }
+    
+    .pos-cart-full .cart-header {
+        padding: var(--spacing-md);
+        background: var(--white);
+    }
+    
+    .pos-cart-full .cart-header h3 {
+        font-size: 1rem;
+    }
+    
+    /* Hide the internal mobile menu container in POS since we have the main header now */
+    .cart-header-actions .mobile-menu-container {
+        display: none;
+    }
+    
+    /* ========================================
+       Sales History Page - Mobile Improvements
+       ======================================== */
+    #page-sales {
+        padding: var(--spacing-md);
+    }
+    
+    #page-sales .page-header {
+        flex-direction: column;
+        gap: var(--spacing-md);
+        align-items: stretch;
+        margin-bottom: var(--spacing-md);
+    }
+    
+    #page-sales .page-header h2 {
+        font-size: 1.25rem;
+        text-align: center;
+    }
+    
+    #page-sales .date-filter {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: var(--spacing-sm);
+        align-items: center;
+        justify-content: center;
+        background: var(--white);
+        padding: var(--spacing-md);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+    }
+    
+    #page-sales .date-filter span {
+        font-size: 0.875rem;
+        color: var(--gray-500);
+    }
+    
+    #page-sales .date-input {
+        flex: 1;
+        min-width: 130px;
+        padding: var(--spacing-sm) var(--spacing-md);
+        font-size: 0.875rem;
+    }
+    
+    #page-sales .date-filter .btn {
+        flex: 1;
+        min-width: 100%;
+        margin-top: var(--spacing-xs);
+    }
+    
+    /* Sales summary cards - improved mobile layout */
+    .sales-summary-cards {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--spacing-sm);
+        margin-bottom: var(--spacing-md);
+    }
+    
+    .sales-summary-cards .summary-card {
+        padding: var(--spacing-md);
+        flex-direction: column;
+        text-align: center;
+        gap: var(--spacing-sm);
+    }
+    
+    .sales-summary-cards .card-icon {
+        width: 48px;
+        height: 48px;
+        font-size: 1.25rem;
+        margin: 0 auto;
+    }
+    
+    .sales-summary-cards .card-label {
+        font-size: 0.75rem;
+    }
+    
+    .sales-summary-cards .card-value {
+        font-size: 1.125rem;
+    }
+    
+    /* Sales table - mobile card layout */
+    .sales-table-container {
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+    }
+    
+    .sales-table {
+        display: block;
+    }
+    
+    .sales-table thead {
+        display: none;
+    }
+    
+    .sales-table tbody {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-sm);
+        padding: var(--spacing-sm);
+    }
+    
+    .sales-table tr {
+        display: flex;
+        flex-direction: column;
+        background: var(--white);
+        border-radius: var(--radius-lg);
+        padding: var(--spacing-md);
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--gray-100);
+        gap: var(--spacing-xs);
+    }
+    
+    .sales-table tr:hover {
+        background: var(--white);
+        border-color: var(--primary-light);
+    }
+    
+    .sales-table td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: var(--spacing-xs) 0;
+        border: none;
+        font-size: 0.875rem;
+    }
+    
+    .sales-table td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: var(--gray-600);
+        font-size: 0.75rem;
+        text-transform: uppercase;
+    }
+    
+    .sales-table td:first-child {
+        padding-bottom: var(--spacing-xs);
+        border-bottom: 1px solid var(--gray-100);
+        font-weight: 600;
+    }
+    
+    .sales-table td:last-child {
+        padding-top: var(--spacing-sm);
+        border-top: 1px solid var(--gray-100);
+        margin-top: var(--spacing-xs);
+    }
+    
+    .sales-table .action-buttons {
+        justify-content: flex-end;
+    }
+    
+    /* ========================================
+       Layaways (Apartados) Page - Mobile Improvements
+       ======================================== */
+    #page-layaways {
+        padding: var(--spacing-md);
+    }
+    
+    #page-layaways .page-header {
+        flex-direction: column;
+        gap: var(--spacing-md);
+        align-items: stretch;
+        margin-bottom: var(--spacing-md);
+    }
+    
+    #page-layaways .page-header h2 {
+        font-size: 1.25rem;
+        text-align: center;
+    }
+    
+    #page-layaways .search-container {
+        max-width: 100%;
+    }
+    
+    #page-layaways .search-input {
+        padding: var(--spacing-md);
+        padding-left: 2.75rem;
+        font-size: 1rem;
+        border-radius: var(--radius-lg);
+        background: var(--white);
+        box-shadow: var(--shadow-sm);
+    }
+    
+    /* Layaway summary cards */
+    .layaways-summary-cards {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--spacing-sm);
+        margin-bottom: var(--spacing-md);
+    }
+    
+    .layaways-summary-cards .summary-card {
+        padding: var(--spacing-md);
+        flex-direction: column;
+        text-align: center;
+        gap: var(--spacing-sm);
+    }
+    
+    .layaways-summary-cards .card-icon {
+        width: 48px;
+        height: 48px;
+        font-size: 1.25rem;
+        margin: 0 auto;
+    }
+    
+    .layaways-summary-cards .card-label {
+        font-size: 0.75rem;
+    }
+    
+    .layaways-summary-cards .card-value {
+        font-size: 1.125rem;
+    }
+    
+    /* Layaway cards - mobile improvements */
+    .layaways-list {
+        gap: var(--spacing-sm);
+    }
+    
+    .layaway-card {
+        grid-template-columns: 1fr;
+        padding: var(--spacing-md);
+        gap: var(--spacing-md);
+        border-left: 4px solid var(--primary);
+    }
+    
+    .layaway-card.pending {
+        border-left-color: var(--warning);
+    }
+    
+    .layaway-card.completed {
+        border-left-color: var(--success);
+    }
+    
+    .layaway-info {
+        text-align: left;
+    }
+    
+    .layaway-info h4 {
+        font-size: 1rem;
+        flex-wrap: wrap;
+    }
+    
+    .layaway-info p {
+        font-size: 0.8125rem;
+    }
+    
+    .layaway-amounts {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: var(--spacing-sm);
+        border-top: 1px solid var(--gray-100);
+        text-align: left;
+    }
+    
+    .layaway-total {
+        font-size: 1.125rem;
+    }
+    
+    .layaway-pending-amount {
+        font-size: 0.875rem;
+        background: rgba(245, 158, 11, 0.1);
+        padding: var(--spacing-xs) var(--spacing-sm);
+        border-radius: var(--radius-full);
+    }
+    
+    /* ========================================
+       Products Page - Mobile Improvements
+       ======================================== */
+    #page-products {
+        padding: var(--spacing-sm);
+    }
+    
+    .products-page-container {
+        height: calc(100dvh - 56px - var(--spacing-sm) * 2);
+        border-radius: var(--radius-lg);
+    }
+    
+    .products-page-header {
+        padding: var(--spacing-md);
+    }
+    
+    .products-page-header h2 {
+        font-size: 1.125rem;
+    }
+    
+    .products-header-actions {
+        gap: var(--spacing-sm);
+    }
+    
+    .products-header-actions .btn {
+        padding: var(--spacing-sm) var(--spacing-md);
+        font-size: 0.875rem;
+    }
+    
+    .products-filters-bar {
+        padding: var(--spacing-sm) var(--spacing-md);
+    }
+    
+    .category-tabs {
+        padding-bottom: var(--spacing-xs);
+    }
+    
+    .category-tab {
+        padding: var(--spacing-xs) var(--spacing-sm);
+        font-size: 0.75rem;
+    }
+    
+    /* ========================================
+       Reports Page - Mobile Improvements
+       ======================================== */
+    #page-reports {
+        padding: var(--spacing-md);
+    }
+    
+    #page-reports .page-header {
+        flex-direction: column;
+        gap: var(--spacing-md);
+        align-items: stretch;
+        margin-bottom: var(--spacing-md);
+    }
+    
+    #page-reports .page-header h2 {
+        font-size: 1.25rem;
+        text-align: center;
+    }
+    
+    #page-reports .date-filter {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-sm);
+        background: var(--white);
+        padding: var(--spacing-md);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+    }
+    
+    #page-reports .date-input {
+        width: 100%;
+        padding: var(--spacing-md);
+        font-size: 1rem;
+    }
+    
+    .report-container {
+        max-width: 100%;
+    }
+    
+    .report-section {
+        padding: var(--spacing-md);
+        margin-bottom: var(--spacing-sm);
+    }
+    
+    .report-section h3 {
+        font-size: 1rem;
+        margin-bottom: var(--spacing-md);
+    }
+    
+    .report-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--spacing-sm);
+    }
+    
+    .report-card {
+        padding: var(--spacing-md);
+    }
+    
+    .report-label {
+        font-size: 0.75rem;
+    }
+    
+    .report-value {
+        font-size: 1.125rem;
+    }
+    
+    .breakdown-row {
+        padding: var(--spacing-sm);
+        flex-wrap: wrap;
+    }
+    
+    .breakdown-label {
+        font-size: 0.875rem;
+    }
+    
+    .breakdown-value {
+        font-size: 0.875rem;
+    }
+    
+    /* ========================================
+       Settings Page - Mobile Improvements
+       ======================================== */
+    #page-settings {
+        padding: var(--spacing-md);
+    }
+    
+    #page-settings .page-header {
+        margin-bottom: var(--spacing-md);
+    }
+    
+    #page-settings .page-header h2 {
+        font-size: 1.25rem;
+    }
+    
+    .settings-container {
+        max-width: 100%;
+    }
+    
+    .settings-section {
+        padding: var(--spacing-md);
+        margin-bottom: var(--spacing-sm);
+    }
+    
+    .settings-section h3 {
+        font-size: 1rem;
+        margin-bottom: var(--spacing-md);
+    }
+    
+    /* ========================================
+       Cart Improvements for Mobile
+       ======================================== */
+    .cart-items-large {
+        min-height: 200px;
+        padding: var(--spacing-md);
+    }
+    
+    .cart-empty-large .empty-icon {
+        font-size: 3rem;
+    }
+    
+    .cart-empty-large p {
+        font-size: 1rem;
+    }
+    
+    .cart-summary-large {
+        padding: var(--spacing-md);
+    }
+    
+    .cart-summary-large .summary-row {
+        font-size: 1rem;
+    }
+    
+    .cart-summary-large .summary-row.total {
+        font-size: 1.25rem;
+    }
+    
+    .cart-actions-large {
+        padding: var(--spacing-md);
+    }
+    
+    .btn-checkout-large {
+        padding: var(--spacing-md);
+        font-size: 1rem;
+        font-weight: 600;
+    }
+    
+    .cart-item {
+        padding: var(--spacing-sm);
+        gap: var(--spacing-sm);
+    }
+    
+    .cart-item-name {
+        font-size: 0.8125rem;
+    }
+    
+    .cart-item-qty button {
+        width: 32px;
+        height: 32px;
+    }
+    
+    /* ========================================
+       Modal Improvements for Mobile
+       ======================================== */
+    .modal {
+        padding: var(--spacing-sm);
+    }
+    
+    .modal-content {
+        max-height: 95vh;
+        margin: 0;
+        border-radius: var(--radius-lg);
+    }
+    
+    .modal-header {
+        padding: var(--spacing-md);
+    }
+    
+    .modal-header h3 {
+        font-size: 1.125rem;
+    }
+    
+    .modal-body {
+        padding: var(--spacing-md);
+    }
+    
+    .modal-footer {
+        padding: var(--spacing-md);
+        flex-direction: column-reverse;
+        gap: var(--spacing-sm);
+    }
+    
+    .modal-footer .btn {
+        width: 100%;
+    }
+    
+    .checkout-body {
+        grid-template-columns: 1fr;
+        gap: var(--spacing-md);
+    }
+    
+    /* ========================================
+       Touch-friendly improvements
+       ======================================== */
+    .btn, 
+    .category-tab,
+    .nav-item,
+    .product-card,
+    .layaway-card {
+        -webkit-tap-highlight-color: transparent;
+    }
+    
+    /* Larger touch targets */
+    .btn {
+        min-height: 44px;
+    }
+    
+    .nav-item {
+        min-height: 48px;
+    }
+    
+    /* Smooth scrolling for iOS */
+    .cart-items-large,
+    .products-grid-large,
+    .layaways-list,
+    .sales-table tbody {
+        -webkit-overflow-scrolling: touch;
+    }
+}
