@@ -1421,7 +1421,11 @@ async function createLayaway() {
         
         // Sync to Firebase for cross-device synchronization
         if (typeof firebaseSync !== 'undefined' && firebaseSync.isUserAuthenticated()) {
-            await firebaseSync.uploadSingle('layaways', savedLayaway);
+            try {
+                await firebaseSync.uploadSingle('layaways', savedLayaway);
+            } catch (syncError) {
+                console.warn('Firebase sync failed, layaway saved locally:', syncError);
+            }
         }
         
         // Clear cart
@@ -1629,7 +1633,11 @@ async function confirmLayawayPayment() {
         // Sync updated layaway to Firebase for cross-device synchronization
         const updatedLayaway = await db.getLayaway(state.currentLayaway.id);
         if (typeof firebaseSync !== 'undefined' && firebaseSync.isUserAuthenticated() && updatedLayaway) {
-            await firebaseSync.uploadSingle('layaways', updatedLayaway);
+            try {
+                await firebaseSync.uploadSingle('layaways', updatedLayaway);
+            } catch (syncError) {
+                console.warn('Firebase sync failed, payment saved locally:', syncError);
+            }
         }
         
         closeAllModals();
@@ -1659,12 +1667,16 @@ async function completeLayaway() {
         
         // Sync completed layaway and sale to Firebase for cross-device synchronization
         if (typeof firebaseSync !== 'undefined' && firebaseSync.isUserAuthenticated()) {
-            const completedLayaway = await db.getLayaway(state.currentLayaway.id);
-            if (completedLayaway) {
-                await firebaseSync.uploadSingle('layaways', completedLayaway);
-            }
-            if (sale) {
-                await firebaseSync.uploadSingle('sales', sale);
+            try {
+                const completedLayaway = await db.getLayaway(state.currentLayaway.id);
+                if (completedLayaway) {
+                    await firebaseSync.uploadSingle('layaways', completedLayaway);
+                }
+                if (sale) {
+                    await firebaseSync.uploadSingle('sales', sale);
+                }
+            } catch (syncError) {
+                console.warn('Firebase sync failed, layaway completed locally:', syncError);
             }
         }
         
