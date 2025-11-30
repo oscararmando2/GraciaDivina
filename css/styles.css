@@ -2885,29 +2885,6 @@ h4 { font-size: 1.125rem; }
         flex-direction: column;
     }
     
-    /* Improve POS page on mobile */
-    #page-pos {
-        padding: 0;
-    }
-    
-    .pos-container-full {
-        height: calc(100dvh - 56px);
-    }
-    
-    .pos-cart-full .cart-header {
-        padding: var(--spacing-md);
-        background: var(--white);
-    }
-    
-    .pos-cart-full .cart-header h3 {
-        font-size: 1rem;
-    }
-    
-    /* Hide the internal mobile menu container in POS since we have the main header now */
-    .cart-header-actions .mobile-menu-container {
-        display: none;
-    }
-    
     /* ========================================
        Sales History Page - Mobile Improvements
        ======================================== */
