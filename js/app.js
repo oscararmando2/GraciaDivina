@@ -458,6 +458,10 @@ async function completeSale() {
     }
     
     try {
+        const amountReceived = paymentMethod === 'efectivo' 
+            ? parseFloat(document.getElementById('amount-received').value) 
+            : total;
+        
         const sale = {
             items: state.cart.map(item => ({
                 productId: item.productId,
@@ -471,8 +475,8 @@ async function completeSale() {
             discount,
             total,
             paymentMethod,
-            amountReceived: paymentMethod === 'efectivo' ? parseFloat(document.getElementById('amount-received').value) : total,
-            change: paymentMethod === 'efectivo' ? parseFloat(document.getElementById('amount-received').value) - total : 0
+            amountReceived: amountReceived,
+            change: paymentMethod === 'efectivo' ? amountReceived - total : 0
         };
         
         const savedSale = await db.addSale(sale);
