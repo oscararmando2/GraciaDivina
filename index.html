@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="Gracia Divina - Sistema Punto de Venta para boutique de ropa y accesorios">
+    <meta name="theme-color" content="#8B5CF6">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Gracia Divina">
+    
+    <title>Gracia Divina - POS</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Favicon and Icons -->
+    <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="icons/icon-16x16.png">
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/styles.css">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Splash Screen -->
+    <div id="splash-screen" class="splash-screen">
+        <div class="splash-content">
+            <div class="splash-logo">✨</div>
+            <h1>Gracia Divina</h1>
+            <p>Punto de Venta</p>
+            <div class="splash-loader"></div>
+        </div>
+    </div>
+
+    <!-- Main App Container -->
+    <div id="app" class="app-container hidden">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <span class="logo-icon">✨</span>
+                    <span class="logo-text">Gracia Divina</span>
+                </div>
+                <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Toggle sidebar">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+            
+            <ul class="nav-menu">
+                <li class="nav-item active" data-page="pos">
+                    <span class="nav-icon">🛒</span>
+                    <span class="nav-text">Punto de Venta</span>
+                </li>
+                <li class="nav-item" data-page="products">
+                    <span class="nav-icon">👗</span>
+                    <span class="nav-text">Productos</span>
+                </li>
+                <li class="nav-item" data-page="sales">
+                    <span class="nav-icon">📊</span>
+                    <span class="nav-text">Ventas</span>
+                </li>
+                <li class="nav-item" data-page="settings">
+                    <span class="nav-icon">⚙️</span>
+                    <span class="nav-text">Configuración</span>
+                </li>
+            </ul>
+            
+            <div class="sidebar-footer">
+                <div class="connection-status" id="connection-status">
+                    <span class="status-dot online"></span>
+                    <span class="status-text">En línea</span>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- POS Page -->
+            <section id="page-pos" class="page active">
+                <div class="pos-container">
+                    <!-- Products Grid -->
+                    <div class="pos-products">
+                        <div class="pos-header">
+                            <h2>Productos</h2>
+                            <div class="search-container">
+                                <input type="text" id="product-search" placeholder="Buscar productos..." class="search-input">
+                                <span class="search-icon">🔍</span>
+                            </div>
+                        </div>
+                        
+                        <div class="category-tabs" id="category-tabs">
+                            <button class="category-tab active" data-category="all">Todos</button>
+                            <button class="category-tab" data-category="ropa">Ropa</button>
+                            <button class="category-tab" data-category="accesorios">Accesorios</button>
+                            <button class="category-tab" data-category="zapatos">Zapatos</button>
+                            <button class="category-tab" data-category="bolsos">Bolsos</button>
+                        </div>
+                        
+                        <div class="products-grid" id="pos-products-grid">
+                            <!-- Products will be loaded here -->
+                        </div>
+                    </div>
+                    
+                    <!-- Cart Section -->
+                    <div class="pos-cart">
+                        <div class="cart-header">
+                            <h3>Venta Actual</h3>
+                            <button class="btn-clear-cart" id="clear-cart" title="Limpiar carrito">🗑️</button>
+                        </div>
+                        
+                        <div class="cart-items" id="cart-items">
+                            <div class="cart-empty">
+                                <span class="empty-icon">🛍️</span>
+                                <p>Agrega productos a la venta</p>
+                            </div>
+                        </div>
+                        
+                        <div class="cart-summary">
+                            <div class="summary-row">
+                                <span>Subtotal:</span>
+                                <span id="cart-subtotal">$0.00</span>
+                            </div>
+                            <div class="summary-row">
+                                <span>Descuento:</span>
+                                <div class="discount-input-container">
+                                    <input type="number" id="discount-input" value="0" min="0" max="100" class="discount-input">
+                                    <span>%</span>
+                                </div>
+                            </div>
+                            <div class="summary-row total">
+                                <span>Total:</span>
+                                <span id="cart-total">$0.00</span>
+                            </div>
+                        </div>
+                        
+                        <div class="cart-actions">
+                            <button class="btn btn-primary btn-checkout" id="btn-checkout" disabled>
+                                <span class="btn-icon">💳</span>
+                                Cobrar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Products Management Page -->
+            <section id="page-products" class="page">
+                <div class="page-header">
+                    <h2>Gestión de Productos</h2>
+                    <button class="btn btn-primary" id="btn-add-product">
+                        <span>➕</span> Nuevo Producto
+                    </button>
+                </div>
+                
+                <div class="products-management">
+                    <div class="filters-bar">
+                        <input type="text" id="products-filter" placeholder="Buscar productos..." class="search-input">
+                        <select id="category-filter" class="select-input">
+                            <option value="all">Todas las categorías</option>
+                            <option value="ropa">Ropa</option>
+                            <option value="accesorios">Accesorios</option>
+                            <option value="zapatos">Zapatos</option>
+                            <option value="bolsos">Bolsos</option>
+                        </select>
+                    </div>
+                    
+                    <div class="products-table-container">
+                        <table class="products-table" id="products-table">
+                            <thead>
+                                <tr>
+                                    <th>Producto</th>
+                                    <th>Categoría</th>
+                                    <th>Precio</th>
+                                    <th>Stock</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="products-table-body">
+                                <!-- Products will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Sales History Page -->
+            <section id="page-sales" class="page">
+                <div class="page-header">
+                    <h2>Historial de Ventas</h2>
+                    <div class="date-filter">
+                        <input type="date" id="sales-date-from" class="date-input">
+                        <span>a</span>
+                        <input type="date" id="sales-date-to" class="date-input">
+                        <button class="btn btn-secondary" id="filter-sales">Filtrar</button>
+                    </div>
+                </div>
+                
+                <div class="sales-summary-cards">
+                    <div class="summary-card">
+                        <div class="card-icon">💰</div>
+                        <div class="card-content">
+                            <span class="card-label">Ventas Hoy</span>
+                            <span class="card-value" id="today-sales">$0.00</span>
+                        </div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="card-icon">📈</div>
+                        <div class="card-content">
+                            <span class="card-label">Ventas del Mes</span>
+                            <span class="card-value" id="month-sales">$0.00</span>
+                        </div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="card-icon">🧾</div>
+                        <div class="card-content">
+                            <span class="card-label">Transacciones Hoy</span>
+                            <span class="card-value" id="today-transactions">0</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="sales-table-container">
+                    <table class="sales-table" id="sales-table">
+                        <thead>
+                            <tr>
+                                <th>Fecha/Hora</th>
+                                <th>Ticket #</th>
+                                <th>Productos</th>
+                                <th>Total</th>
+                                <th>Método</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sales-table-body">
+                            <!-- Sales will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Settings Page -->
+            <section id="page-settings" class="page">
+                <div class="page-header">
+                    <h2>Configuración</h2>
+                </div>
+                
+                <div class="settings-container">
+                    <div class="settings-section">
+                        <h3>Información del Negocio</h3>
+                        <div class="form-group">
+                            <label for="business-name">Nombre del Negocio</label>
+                            <input type="text" id="business-name" value="Gracia Divina" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label for="business-phone">Teléfono</label>
+                            <input type="tel" id="business-phone" placeholder="(123) 456-7890" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label for="business-address">Dirección</label>
+                            <textarea id="business-address" placeholder="Ingresa la dirección" class="form-textarea"></textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="settings-section">
+                        <h3>Configuración de Tickets</h3>
+                        <div class="form-group">
+                            <label for="ticket-footer">Mensaje en Tickets</label>
+                            <textarea id="ticket-footer" placeholder="¡Gracias por su compra!" class="form-textarea"></textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="settings-section">
+                        <h3>Datos</h3>
+                        <div class="settings-actions">
+                            <button class="btn btn-secondary" id="export-data">
+                                <span>📤</span> Exportar Datos
+                            </button>
+                            <button class="btn btn-secondary" id="import-data">
+                                <span>📥</span> Importar Datos
+                            </button>
+                            <input type="file" id="import-file" accept=".json" hidden>
+                        </div>
+                        <div class="settings-actions danger-zone">
+                            <button class="btn btn-danger" id="reset-data">
+                                <span>⚠️</span> Restablecer Datos
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-primary" id="save-settings">Guardar Configuración</button>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <!-- Product Modal -->
+    <div id="product-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="product-modal-title">Nuevo Producto</h3>
+                <button class="modal-close" data-close-modal>&times;</button>
+            </div>
+            <form id="product-form" class="modal-body">
+                <div class="form-group">
+                    <label for="product-name">Nombre del Producto *</label>
+                    <input type="text" id="product-name" required class="form-input">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="product-category">Categoría *</label>
+                        <select id="product-category" required class="form-input">
+                            <option value="">Seleccionar...</option>
+                            <option value="ropa">Ropa</option>
+                            <option value="accesorios">Accesorios</option>
+                            <option value="zapatos">Zapatos</option>
+                            <option value="bolsos">Bolsos</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="product-price">Precio *</label>
+                        <input type="number" id="product-price" required min="0" step="0.01" class="form-input">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="product-stock">Stock</label>
+                        <input type="number" id="product-stock" value="0" min="0" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label for="product-sku">SKU / Código</label>
+                        <input type="text" id="product-sku" class="form-input">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="product-description">Descripción</label>
+                    <textarea id="product-description" class="form-textarea" rows="3"></textarea>
+                </div>
+                <input type="hidden" id="product-id">
+            </form>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-close-modal>Cancelar</button>
+                <button class="btn btn-primary" id="save-product">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Checkout Modal -->
+    <div id="checkout-modal" class="modal">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h3>Finalizar Venta</h3>
+                <button class="modal-close" data-close-modal>&times;</button>
+            </div>
+            <div class="modal-body checkout-body">
+                <div class="checkout-summary">
+                    <h4>Resumen de Venta</h4>
+                    <div id="checkout-items" class="checkout-items">
+                        <!-- Items will be loaded here -->
+                    </div>
+                    <div class="checkout-totals">
+                        <div class="checkout-row">
+                            <span>Subtotal:</span>
+                            <span id="checkout-subtotal">$0.00</span>
+                        </div>
+                        <div class="checkout-row">
+                            <span>Descuento:</span>
+                            <span id="checkout-discount">$0.00</span>
+                        </div>
+                        <div class="checkout-row total">
+                            <span>Total a Pagar:</span>
+                            <span id="checkout-total">$0.00</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="payment-section">
+                    <h4>Método de Pago</h4>
+                    <div class="payment-methods">
+                        <label class="payment-option selected">
+                            <input type="radio" name="payment-method" value="efectivo" checked>
+                            <span class="payment-icon">💵</span>
+                            <span>Efectivo</span>
+                        </label>
+                        <label class="payment-option">
+                            <input type="radio" name="payment-method" value="tarjeta">
+                            <span class="payment-icon">💳</span>
+                            <span>Tarjeta</span>
+                        </label>
+                        <label class="payment-option">
+                            <input type="radio" name="payment-method" value="transferencia">
+                            <span class="payment-icon">📱</span>
+                            <span>Transferencia</span>
+                        </label>
+                    </div>
+                    
+                    <div id="cash-payment" class="cash-payment">
+                        <div class="form-group">
+                            <label for="amount-received">Monto Recibido</label>
+                            <input type="number" id="amount-received" min="0" step="0.01" class="form-input large-input">
+                        </div>
+                        <div class="change-display">
+                            <span>Cambio:</span>
+                            <span id="change-amount" class="change-value">$0.00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-close-modal>Cancelar</button>
+                <button class="btn btn-success btn-lg" id="complete-sale">
+                    <span>✓</span> Completar Venta
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sale Detail Modal -->
+    <div id="sale-detail-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Detalle de Venta</h3>
+                <button class="modal-close" data-close-modal>&times;</button>
+            </div>
+            <div class="modal-body" id="sale-detail-content">
+                <!-- Sale details will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-close-modal>Cerrar</button>
+                <button class="btn btn-primary" id="print-ticket">
+                    <span>🖨️</span> Imprimir Ticket
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quantity Modal -->
+    <div id="quantity-modal" class="modal">
+        <div class="modal-content modal-sm">
+            <div class="modal-header">
+                <h3>Cantidad</h3>
+                <button class="modal-close" data-close-modal>&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="quantity-selector">
+                    <button class="qty-btn" id="qty-decrease">−</button>
+                    <input type="number" id="qty-input" value="1" min="1" class="qty-input">
+                    <button class="qty-btn" id="qty-increase">+</button>
+                </div>
+                <p id="qty-product-name" class="qty-product-name"></p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-close-modal>Cancelar</button>
+                <button class="btn btn-primary" id="confirm-quantity">Agregar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Scripts -->
+    <script src="js/db.js"></script>
+    <script src="js/app.js"></script>
+    
+    <!-- Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registrado:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.log('Error al registrar ServiceWorker:', error);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
