@@ -233,7 +233,10 @@ function toggleSidebar() {
 async function loadProducts(category = 'all', searchQuery = '', owner = 'all') {
     const grid = document.getElementById('pos-products-grid');
     
-    if (!grid) return;
+    if (!grid) {
+        console.warn('Products grid element not found - skipping product load');
+        return;
+    }
     
     let products = await db.getAllProducts();
     
@@ -284,8 +287,8 @@ async function loadProducts(category = 'all', searchQuery = '', owner = 'all') {
                 <div class="product-stock ${stockClass}">${stockText}</div>
                 ${product.owner ? `<div class="product-owner">${escapeHtml(product.owner)}</div>` : ''}
                 <div class="product-actions">
-                    <button class="btn-icon edit" onclick="event.stopPropagation(); editProduct(${product.id})" title="Editar">✏️</button>
-                    <button class="btn-icon delete" onclick="event.stopPropagation(); deleteProduct(${product.id})" title="Eliminar">🗑️</button>
+                    <button class="btn-icon edit" data-action="edit" data-product-id="${product.id}" title="Editar">✏️</button>
+                    <button class="btn-icon delete" data-action="delete" data-product-id="${product.id}" title="Eliminar">🗑️</button>
                 </div>
             </div>
         `;
@@ -294,6 +297,19 @@ async function loadProducts(category = 'all', searchQuery = '', owner = 'all') {
     // Add click handlers for adding to cart
     grid.querySelectorAll('.product-card').forEach(card => {
         card.addEventListener('click', () => handleProductClick(parseInt(card.dataset.productId)));
+    });
+    
+    // Add event delegation for product action buttons (edit/delete)
+    grid.querySelectorAll('.product-actions button').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent triggering the card click
+            const productId = parseInt(btn.dataset.productId);
+            if (btn.dataset.action === 'edit') {
+                editProduct(productId);
+            } else if (btn.dataset.action === 'delete') {
+                deleteProduct(productId);
+            }
+        });
     });
 }
 
