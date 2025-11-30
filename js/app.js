@@ -824,10 +824,11 @@ async function saveProduct() {
     const sizes = Array.from(document.querySelectorAll('input[name="sizes"]:checked'))
         .map(cb => cb.value);
     
-    // Add custom size if provided
+    // Add custom sizes if provided (supports comma-separated values)
     const customSize = document.getElementById('product-custom-size').value.trim();
     if (customSize) {
-        sizes.push(customSize);
+        const customSizes = customSize.split(',').map(s => s.trim()).filter(s => s);
+        sizes.push(...customSizes);
     }
     
     // Get selected colors
