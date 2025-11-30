@@ -4,7 +4,7 @@
  */
 
 const DB_NAME = 'GraciaDivinaDB';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 class Database {
     constructor() {
@@ -43,6 +43,7 @@ class Database {
                     productStore.createIndex('name', 'name', { unique: false });
                     productStore.createIndex('category', 'category', { unique: false });
                     productStore.createIndex('sku', 'sku', { unique: false });
+                    productStore.createIndex('owner', 'owner', { unique: false });
                 }
 
                 // Sales Store
@@ -53,6 +54,27 @@ class Database {
                     });
                     salesStore.createIndex('date', 'date', { unique: false });
                     salesStore.createIndex('ticketNumber', 'ticketNumber', { unique: true });
+                }
+
+                // Layaways (Apartados) Store
+                if (!db.objectStoreNames.contains('layaways')) {
+                    const layawayStore = db.createObjectStore('layaways', {
+                        keyPath: 'id',
+                        autoIncrement: true
+                    });
+                    layawayStore.createIndex('customerName', 'customerName', { unique: false });
+                    layawayStore.createIndex('customerPhone', 'customerPhone', { unique: false });
+                    layawayStore.createIndex('status', 'status', { unique: false });
+                    layawayStore.createIndex('date', 'date', { unique: false });
+                }
+
+                // Owners Store
+                if (!db.objectStoreNames.contains('owners')) {
+                    const ownerStore = db.createObjectStore('owners', {
+                        keyPath: 'id',
+                        autoIncrement: true
+                    });
+                    ownerStore.createIndex('name', 'name', { unique: true });
                 }
 
                 // Settings Store
@@ -313,6 +335,210 @@ class Database {
     }
 
     // ========================================
+    // LAYAWAY (APARTADO) OPERATIONS
+    // ========================================
+
+    /**
+     * Add a new layaway
+     */
+    async addLayaway(layaway) {
+        return new Promise((resolve, reject) => {
+            const store = this.getStore('layaways', 'readwrite');
+            layaway.date = new Date().toISOString();
+            layaway.status = 'pending'; // pending, completed, cancelled
+            layaway.payments = layaway.payments || [];
+            
+            const request = store.add(layaway);
+            
+            request.onsuccess = async () => {
+                // Update stock for each item
+                for (const item of layaway.items) {
+                    await this.updateStock(item.productId, -item.quantity);
+                }
+                resolve({ ...layaway, id: request.result });
+            };
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    /**
+     * Get a layaway by ID
+     */
+    async getLayaway(id) {
+        return new Promise((resolve, reject) => {
+            const store = this.getStore('layaways');
+            const request = store.get(id);
+            
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    /**
+     * Update a layaway
+     */
+    async updateLayaway(layaway) {
+        return new Promise((resolve, reject) => {
+            const store = this.getStore('layaways', 'readwrite');
+            layaway.updatedAt = new Date().toISOString();
+            
+            const request = store.put(layaway);
+            
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    /**
+     * Add payment to layaway
+     */
+    async addLayawayPayment(layawayId, amount, paymentMethod) {
+        const layaway = await this.getLayaway(layawayId);
+        if (!layaway) return null;
+
+        const payment = {
+            amount,
+            paymentMethod,
+            date: new Date().toISOString()
+        };
+        
+        layaway.payments.push(payment);
+        layaway.totalPaid = layaway.payments.reduce((sum, p) => sum + p.amount, 0);
+        layaway.pendingAmount = layaway.total - layaway.totalPaid;
+        
+        return this.updateLayaway(layaway);
+    }
+
+    /**
+     * Complete layaway (convert to sale)
+     */
+    async completeLayaway(layawayId) {
+        const layaway = await this.getLayaway(layawayId);
+        if (!layaway) return null;
+
+        layaway.status = 'completed';
+        layaway.completedAt = new Date().toISOString();
+        await this.updateLayaway(layaway);
+
+        // Create a sale record from the layaway
+        const sale = {
+            items: layaway.items,
+            subtotal: layaway.subtotal,
+            discountPercent: layaway.discountPercent || 0,
+            discount: layaway.discount || 0,
+            total: layaway.total,
+            paymentMethod: 'apartado',
+            amountReceived: layaway.total,
+            change: 0,
+            layawayId: layawayId,
+            customerName: layaway.customerName,
+            customerPhone: layaway.customerPhone
+        };
+
+        return this.addSale(sale);
+    }
+
+    /**
+     * Get all layaways
+     */
+    async getAllLayaways() {
+        return new Promise((resolve, reject) => {
+            const store = this.getStore('layaways');
+            const request = store.getAll();
+            
+            request.onsuccess = () => {
+                const layaways = request.result;
+                layaways.sort((a, b) => new Date(b.date) - new Date(a.date));
+                resolve(layaways);
+            };
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    /**
+     * Get pending layaways
+     */
+    async getPendingLayaways() {
+        const layaways = await this.getAllLayaways();
+        return layaways.filter(l => l.status === 'pending');
+    }
+
+    /**
+     * Search layaways by customer name or phone
+     */
+    async searchLayaways(query) {
+        const layaways = await this.getAllLayaways();
+        const lowerQuery = query.toLowerCase();
+        
+        return layaways.filter(layaway => 
+            layaway.customerName.toLowerCase().includes(lowerQuery) ||
+            layaway.customerPhone.includes(query)
+        );
+    }
+
+    // ========================================
+    // OWNER (DUEÑA) OPERATIONS
+    // ========================================
+
+    /**
+     * Add a new owner
+     */
+    async addOwner(name) {
+        return new Promise((resolve, reject) => {
+            const store = this.getStore('owners', 'readwrite');
+            const owner = {
+                name,
+                createdAt: new Date().toISOString()
+            };
+            
+            const request = store.add(owner);
+            
+            request.onsuccess = () => resolve({ ...owner, id: request.result });
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    /**
+     * Get all owners
+     */
+    async getAllOwners() {
+        return new Promise((resolve, reject) => {
+            const store = this.getStore('owners');
+            const request = store.getAll();
+            
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    /**
+     * Delete an owner
+     */
+    async deleteOwner(id) {
+        return new Promise((resolve, reject) => {
+            const store = this.getStore('owners', 'readwrite');
+            const request = store.delete(id);
+            
+            request.onsuccess = () => resolve(true);
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    /**
+     * Seed default owners
+     */
+    async seedDefaultOwners() {
+        const existingOwners = await this.getAllOwners();
+        if (existingOwners.length === 0) {
+            const defaultOwners = ['Ketzy', 'Stefanny', 'Chela'];
+            for (const name of defaultOwners) {
+                await this.addOwner(name);
+            }
+            console.log('Default owners seeded');
+        }
+    }
+
+    // ========================================
     // SETTINGS OPERATIONS
     // ========================================
 
@@ -371,6 +597,8 @@ class Database {
     async exportData() {
         const products = await this.getAllProducts();
         const sales = await this.getAllSales();
+        const layaways = await this.getAllLayaways();
+        const owners = await this.getAllOwners();
         const settings = await this.getAllSettings();
 
         return {
@@ -379,6 +607,8 @@ class Database {
             data: {
                 products,
                 sales,
+                layaways,
+                owners,
                 settings
             }
         };
@@ -389,11 +619,13 @@ class Database {
      */
     async importData(importedData) {
         try {
-            const { products, sales, settings } = importedData.data;
+            const { products, sales, layaways, owners, settings } = importedData.data;
 
             // Clear existing data
             await this.clearStore('products');
             await this.clearStore('sales');
+            await this.clearStore('layaways');
+            await this.clearStore('owners');
             await this.clearStore('settings');
 
             // Import products
@@ -413,6 +645,32 @@ class Database {
                 });
             }
 
+            // Import layaways
+            if (layaways) {
+                for (const layaway of layaways) {
+                    delete layaway.id;
+                    const store = this.getStore('layaways', 'readwrite');
+                    await new Promise((resolve, reject) => {
+                        const request = store.add(layaway);
+                        request.onsuccess = () => resolve();
+                        request.onerror = () => reject(request.error);
+                    });
+                }
+            }
+
+            // Import owners
+            if (owners) {
+                for (const owner of owners) {
+                    delete owner.id;
+                    const store = this.getStore('owners', 'readwrite');
+                    await new Promise((resolve, reject) => {
+                        const request = store.add(owner);
+                        request.onsuccess = () => resolve();
+                        request.onerror = () => reject(request.error);
+                    });
+                }
+            }
+
             // Import settings
             for (const [key, value] of Object.entries(settings)) {
                 await this.saveSetting(key, value);
@@ -430,11 +688,22 @@ class Database {
      */
     async clearStore(storeName) {
         return new Promise((resolve, reject) => {
-            const store = this.getStore(storeName, 'readwrite');
-            const request = store.clear();
-            
-            request.onsuccess = () => resolve(true);
-            request.onerror = () => reject(request.error);
+            try {
+                const store = this.getStore(storeName, 'readwrite');
+                const request = store.clear();
+                
+                request.onsuccess = () => resolve(true);
+                request.onerror = () => reject(request.error);
+            } catch (error) {
+                // Store might not exist during database upgrade - this is expected
+                if (error.name === 'NotFoundError' || error.message.includes('not found')) {
+                    console.log(`Store "${storeName}" not found, skipping clear`);
+                    resolve(true);
+                } else {
+                    console.error(`Error clearing store "${storeName}":`, error);
+                    reject(error);
+                }
+            }
         });
     }
 
@@ -444,6 +713,8 @@ class Database {
     async resetAllData() {
         await this.clearStore('products');
         await this.clearStore('sales');
+        await this.clearStore('layaways');
+        await this.clearStore('owners');
         await this.clearStore('settings');
         return true;
     }
@@ -452,33 +723,34 @@ class Database {
      * Seed initial products (sample data)
      */
     async seedSampleProducts() {
+        const owners = ['Ketzy', 'Stefanny', 'Chela'];
         const sampleProducts = [
             // Ropa
-            { name: 'Blusa Elegante Floral', category: 'ropa', price: 45.99, stock: 15, sku: 'BLU-001', description: 'Blusa con estampado floral elegante' },
-            { name: 'Vestido Cocktail Negro', category: 'ropa', price: 89.99, stock: 8, sku: 'VES-001', description: 'Vestido negro para ocasiones especiales' },
-            { name: 'Falda Midi Plisada', category: 'ropa', price: 55.00, stock: 12, sku: 'FAL-001', description: 'Falda midi plisada elegante' },
-            { name: 'Pantalón Palazzo', category: 'ropa', price: 65.00, stock: 10, sku: 'PAN-001', description: 'Pantalón palazzo de talle alto' },
-            { name: 'Camisa Satinada', category: 'ropa', price: 52.00, stock: 18, sku: 'CAM-001', description: 'Camisa de satén con cuello' },
-            { name: 'Top Crop Encaje', category: 'ropa', price: 32.00, stock: 20, sku: 'TOP-001', description: 'Top crop con detalles de encaje' },
+            { name: 'Blusa Elegante Floral', category: 'ropa', price: 45.99, stock: 15, sku: 'BLU-001', description: 'Blusa con estampado floral elegante', owner: 'Ketzy', sizes: ['S', 'M', 'L'], colors: ['Rosa', 'Blanco'] },
+            { name: 'Vestido Cocktail Negro', category: 'ropa', price: 89.99, stock: 8, sku: 'VES-001', description: 'Vestido negro para ocasiones especiales', owner: 'Stefanny', sizes: ['S', 'M'], colors: ['Negro'] },
+            { name: 'Falda Midi Plisada', category: 'ropa', price: 55.00, stock: 12, sku: 'FAL-001', description: 'Falda midi plisada elegante', owner: 'Chela', sizes: ['S', 'M', 'L', 'XL'], colors: ['Beige', 'Negro'] },
+            { name: 'Pantalón Palazzo', category: 'ropa', price: 65.00, stock: 10, sku: 'PAN-001', description: 'Pantalón palazzo de talle alto', owner: 'Ketzy', sizes: ['M', 'L'], colors: ['Negro', 'Blanco'] },
+            { name: 'Camisa Satinada', category: 'ropa', price: 52.00, stock: 18, sku: 'CAM-001', description: 'Camisa de satén con cuello', owner: 'Stefanny', sizes: ['S', 'M', 'L'], colors: ['Champagne', 'Rosa'] },
+            { name: 'Top Crop Encaje', category: 'ropa', price: 32.00, stock: 20, sku: 'TOP-001', description: 'Top crop con detalles de encaje', owner: 'Chela', sizes: ['XS', 'S', 'M'], colors: ['Blanco', 'Negro'] },
             
             // Accesorios
-            { name: 'Collar Perlas Clásico', category: 'accesorios', price: 28.00, stock: 25, sku: 'COL-001', description: 'Collar de perlas sintéticas clásico' },
-            { name: 'Aretes Dorados Largos', category: 'accesorios', price: 18.00, stock: 30, sku: 'ARE-001', description: 'Aretes dorados colgantes' },
-            { name: 'Pulsera Charm', category: 'accesorios', price: 22.00, stock: 35, sku: 'PUL-001', description: 'Pulsera con dijes intercambiables' },
-            { name: 'Cinturón Cuero Café', category: 'accesorios', price: 35.00, stock: 15, sku: 'CIN-001', description: 'Cinturón de cuero sintético' },
-            { name: 'Pañuelo Seda Estampado', category: 'accesorios', price: 25.00, stock: 20, sku: 'PAÑ-001', description: 'Pañuelo de seda con estampado' },
+            { name: 'Collar Perlas Clásico', category: 'accesorios', price: 28.00, stock: 25, sku: 'COL-001', description: 'Collar de perlas sintéticas clásico', owner: 'Ketzy', sizes: [], colors: ['Perla', 'Dorado'] },
+            { name: 'Aretes Dorados Largos', category: 'accesorios', price: 18.00, stock: 30, sku: 'ARE-001', description: 'Aretes dorados colgantes', owner: 'Stefanny', sizes: [], colors: ['Dorado'] },
+            { name: 'Pulsera Charm', category: 'accesorios', price: 22.00, stock: 35, sku: 'PUL-001', description: 'Pulsera con dijes intercambiables', owner: 'Chela', sizes: [], colors: ['Plateado', 'Dorado'] },
+            { name: 'Cinturón Cuero Café', category: 'accesorios', price: 35.00, stock: 15, sku: 'CIN-001', description: 'Cinturón de cuero sintético', owner: 'Ketzy', sizes: ['S', 'M', 'L'], colors: ['Café', 'Negro'] },
+            { name: 'Pañuelo Seda Estampado', category: 'accesorios', price: 25.00, stock: 20, sku: 'PAÑ-001', description: 'Pañuelo de seda con estampado', owner: 'Stefanny', sizes: [], colors: ['Multicolor'] },
             
             // Zapatos
-            { name: 'Tacones Nude Classic', category: 'zapatos', price: 75.00, stock: 10, sku: 'TAC-001', description: 'Tacones nude de 8cm' },
-            { name: 'Sandalias Plataforma', category: 'zapatos', price: 68.00, stock: 12, sku: 'SAN-001', description: 'Sandalias con plataforma' },
-            { name: 'Botines Negros', category: 'zapatos', price: 85.00, stock: 8, sku: 'BOT-001', description: 'Botines negros con tacón medio' },
-            { name: 'Flats Bailarina', category: 'zapatos', price: 42.00, stock: 15, sku: 'FLA-001', description: 'Flats estilo bailarina' },
+            { name: 'Tacones Nude Classic', category: 'zapatos', price: 75.00, stock: 10, sku: 'TAC-001', description: 'Tacones nude de 8cm', owner: 'Chela', sizes: ['35', '36', '37', '38'], colors: ['Nude'] },
+            { name: 'Sandalias Plataforma', category: 'zapatos', price: 68.00, stock: 12, sku: 'SAN-001', description: 'Sandalias con plataforma', owner: 'Ketzy', sizes: ['36', '37', '38', '39'], colors: ['Negro', 'Café'] },
+            { name: 'Botines Negros', category: 'zapatos', price: 85.00, stock: 8, sku: 'BOT-001', description: 'Botines negros con tacón medio', owner: 'Stefanny', sizes: ['36', '37', '38'], colors: ['Negro'] },
+            { name: 'Flats Bailarina', category: 'zapatos', price: 42.00, stock: 15, sku: 'FLA-001', description: 'Flats estilo bailarina', owner: 'Chela', sizes: ['35', '36', '37', '38', '39'], colors: ['Rosa', 'Negro', 'Nude'] },
             
             // Bolsos
-            { name: 'Bolso Tote Grande', category: 'bolsos', price: 95.00, stock: 8, sku: 'BOL-001', description: 'Bolso tote espacioso' },
-            { name: 'Clutch Fiesta Dorado', category: 'bolsos', price: 45.00, stock: 12, sku: 'CLU-001', description: 'Clutch para eventos' },
-            { name: 'Bolso Crossbody', category: 'bolsos', price: 55.00, stock: 15, sku: 'CRO-001', description: 'Bolso cruzado casual' },
-            { name: 'Mochila Mini', category: 'bolsos', price: 48.00, stock: 10, sku: 'MOC-001', description: 'Mini mochila de piel sintética' }
+            { name: 'Bolso Tote Grande', category: 'bolsos', price: 95.00, stock: 8, sku: 'BOL-001', description: 'Bolso tote espacioso', owner: 'Ketzy', sizes: [], colors: ['Café', 'Negro'] },
+            { name: 'Clutch Fiesta Dorado', category: 'bolsos', price: 45.00, stock: 12, sku: 'CLU-001', description: 'Clutch para eventos', owner: 'Stefanny', sizes: [], colors: ['Dorado', 'Plateado'] },
+            { name: 'Bolso Crossbody', category: 'bolsos', price: 55.00, stock: 15, sku: 'CRO-001', description: 'Bolso cruzado casual', owner: 'Chela', sizes: [], colors: ['Rosa', 'Beige'] },
+            { name: 'Mochila Mini', category: 'bolsos', price: 48.00, stock: 10, sku: 'MOC-001', description: 'Mini mochila de piel sintética', owner: 'Ketzy', sizes: [], colors: ['Negro', 'Blanco'] }
         ];
 
         const existingProducts = await this.getAllProducts();

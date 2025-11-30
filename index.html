@@ -63,9 +63,18 @@
                     <span class="nav-icon">👗</span>
                     <span class="nav-text">Productos</span>
                 </li>
+                <li class="nav-item" data-page="layaways">
+                    <span class="nav-icon">📋</span>
+                    <span class="nav-text">Apartados</span>
+                    <span class="nav-badge" id="layaway-count-badge"></span>
+                </li>
                 <li class="nav-item" data-page="sales">
                     <span class="nav-icon">📊</span>
                     <span class="nav-text">Ventas</span>
+                </li>
+                <li class="nav-item" data-page="reports">
+                    <span class="nav-icon">📈</span>
+                    <span class="nav-text">Reportes</span>
                 </li>
                 <li class="nav-item" data-page="settings">
                     <span class="nav-icon">⚙️</span>
@@ -90,9 +99,14 @@
                     <div class="pos-products">
                         <div class="pos-header">
                             <h2>Productos</h2>
-                            <div class="search-container">
-                                <input type="text" id="product-search" placeholder="Buscar productos..." class="search-input">
-                                <span class="search-icon">🔍</span>
+                            <div class="search-container-wrapper">
+                                <div class="search-container">
+                                    <input type="text" id="product-search" placeholder="Buscar por nombre, código..." class="search-input" autofocus>
+                                    <span class="search-icon">🔍</span>
+                                </div>
+                                <button class="btn-camera-scan" id="btn-camera-scan" title="Escanear con cámara">
+                                    📷
+                                </button>
                             </div>
                         </div>
                         
@@ -142,10 +156,16 @@
                         </div>
                         
                         <div class="cart-actions">
-                            <button class="btn btn-primary btn-checkout" id="btn-checkout" disabled>
-                                <span class="btn-icon">💳</span>
-                                Cobrar
-                            </button>
+                            <div class="cart-actions-row">
+                                <button class="btn btn-success btn-checkout-main" id="btn-vender" disabled>
+                                    <span class="btn-icon">💰</span>
+                                    VENDER
+                                </button>
+                                <button class="btn btn-secondary btn-checkout-main btn-apartado" id="btn-apartado" disabled>
+                                    <span class="btn-icon">📋</span>
+                                    APARTADO
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -170,6 +190,9 @@
                             <option value="zapatos">Zapatos</option>
                             <option value="bolsos">Bolsos</option>
                         </select>
+                        <select id="owner-filter" class="select-input">
+                            <option value="all">Todas las dueñas</option>
+                        </select>
                     </div>
                     
                     <div class="products-table-container">
@@ -180,6 +203,7 @@
                                     <th>Categoría</th>
                                     <th>Precio</th>
                                     <th>Stock</th>
+                                    <th>Dueña</th>
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
@@ -188,6 +212,38 @@
                             </tbody>
                         </table>
                     </div>
+                </div>
+            </section>
+
+            <!-- Layaways (Apartados) Page -->
+            <section id="page-layaways" class="page">
+                <div class="page-header">
+                    <h2>Apartados</h2>
+                    <div class="search-container">
+                        <input type="text" id="layaway-search" placeholder="Buscar por nombre o teléfono..." class="search-input">
+                        <span class="search-icon">🔍</span>
+                    </div>
+                </div>
+                
+                <div class="layaways-summary-cards">
+                    <div class="summary-card">
+                        <div class="card-icon">📋</div>
+                        <div class="card-content">
+                            <span class="card-label">Apartados Pendientes</span>
+                            <span class="card-value" id="pending-layaways-count">0</span>
+                        </div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="card-icon">💵</div>
+                        <div class="card-content">
+                            <span class="card-label">Saldo por Cobrar</span>
+                            <span class="card-value" id="pending-layaways-amount">$0.00</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="layaways-list" id="layaways-list">
+                    <!-- Layaways will be loaded here -->
                 </div>
             </section>
 
@@ -246,6 +302,67 @@
                 </div>
             </section>
 
+            <!-- Reports Page (Cierre de Caja) -->
+            <section id="page-reports" class="page">
+                <div class="page-header">
+                    <h2>Cierre de Caja</h2>
+                    <div class="date-filter">
+                        <input type="date" id="report-date" class="date-input">
+                        <button class="btn btn-primary" id="generate-report">Generar Reporte</button>
+                    </div>
+                </div>
+                
+                <div class="report-container" id="report-container">
+                    <div class="report-section">
+                        <h3>📊 Resumen del Día</h3>
+                        <div class="report-grid">
+                            <div class="report-card total">
+                                <span class="report-label">Total Vendido</span>
+                                <span class="report-value" id="report-total-sold">$0.00</span>
+                            </div>
+                            <div class="report-card">
+                                <span class="report-label">Transacciones</span>
+                                <span class="report-value" id="report-transactions">0</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="report-section">
+                        <h3>💳 Desglose por Método de Pago</h3>
+                        <div class="report-breakdown" id="payment-breakdown">
+                            <!-- Payment method breakdown -->
+                        </div>
+                    </div>
+                    
+                    <div class="report-section">
+                        <h3>👩 Ventas por Dueña</h3>
+                        <div class="report-breakdown" id="owner-breakdown">
+                            <!-- Owner sales breakdown -->
+                        </div>
+                    </div>
+                    
+                    <div class="report-section">
+                        <h3>📋 Apartados Pendientes</h3>
+                        <div class="report-grid">
+                            <div class="report-card warning">
+                                <span class="report-label">Cantidad</span>
+                                <span class="report-value" id="report-pending-layaways">0</span>
+                            </div>
+                            <div class="report-card warning">
+                                <span class="report-label">Saldo Pendiente</span>
+                                <span class="report-value" id="report-pending-amount">$0.00</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="report-actions">
+                        <button class="btn btn-primary" id="print-report">
+                            <span>🖨️</span> Imprimir Reporte
+                        </button>
+                    </div>
+                </div>
+            </section>
+
             <!-- Settings Page -->
             <section id="page-settings" class="page">
                 <div class="page-header">
@@ -266,6 +383,19 @@
                         <div class="form-group">
                             <label for="business-address">Dirección</label>
                             <textarea id="business-address" placeholder="Ingresa la dirección" class="form-textarea"></textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="settings-section">
+                        <h3>Gestión de Dueñas</h3>
+                        <div class="owners-list" id="owners-list">
+                            <!-- Owners will be loaded here -->
+                        </div>
+                        <div class="form-row owner-add-row">
+                            <input type="text" id="new-owner-name" placeholder="Nombre de nueva dueña" class="form-input">
+                            <button class="btn btn-primary" id="add-owner-btn">
+                                <span>➕</span> Agregar
+                            </button>
                         </div>
                     </div>
                     
@@ -304,16 +434,23 @@
     <!-- Modals -->
     <!-- Product Modal -->
     <div id="product-modal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content modal-lg">
             <div class="modal-header">
                 <h3 id="product-modal-title">Nuevo Producto</h3>
                 <button class="modal-close" data-close-modal>&times;</button>
             </div>
             <form id="product-form" class="modal-body">
-                <div class="form-group">
-                    <label for="product-name">Nombre del Producto *</label>
-                    <input type="text" id="product-name" required class="form-input">
+                <div class="form-row">
+                    <div class="form-group flex-2">
+                        <label for="product-name">Nombre del Producto *</label>
+                        <input type="text" id="product-name" required class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label for="product-sku">Código *</label>
+                        <input type="text" id="product-sku" required class="form-input">
+                    </div>
                 </div>
+                
                 <div class="form-row">
                     <div class="form-group">
                         <label for="product-category">Categoría *</label>
@@ -326,25 +463,83 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="product-price">Precio *</label>
+                        <label for="product-price">Precio de Venta *</label>
                         <input type="number" id="product-price" required min="0" step="0.01" class="form-input">
                     </div>
-                </div>
-                <div class="form-row">
                     <div class="form-group">
                         <label for="product-stock">Stock</label>
                         <input type="number" id="product-stock" value="0" min="0" class="form-input">
                     </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="product-owner">Dueña del Producto *</label>
+                    <select id="product-owner" required class="form-input">
+                        <option value="">Seleccionar dueña...</option>
+                    </select>
+                </div>
+                
+                <div class="form-row">
                     <div class="form-group">
-                        <label for="product-sku">SKU / Código</label>
-                        <input type="text" id="product-sku" class="form-input">
+                        <label>Talles Disponibles</label>
+                        <div class="checkbox-group" id="sizes-checkboxes">
+                            <label class="checkbox-label"><input type="checkbox" name="sizes" value="XS"> XS</label>
+                            <label class="checkbox-label"><input type="checkbox" name="sizes" value="S"> S</label>
+                            <label class="checkbox-label"><input type="checkbox" name="sizes" value="M"> M</label>
+                            <label class="checkbox-label"><input type="checkbox" name="sizes" value="L"> L</label>
+                            <label class="checkbox-label"><input type="checkbox" name="sizes" value="XL"> XL</label>
+                            <label class="checkbox-label"><input type="checkbox" name="sizes" value="XXL"> XXL</label>
+                            <label class="checkbox-label"><input type="checkbox" name="sizes" value="35"> 35</label>
+                            <label class="checkbox-label"><input type="checkbox" name="sizes" value="36"> 36</label>
+                            <label class="checkbox-label"><input type="checkbox" name="sizes" value="37"> 37</label>
+                            <label class="checkbox-label"><input type="checkbox" name="sizes" value="38"> 38</label>
+                            <label class="checkbox-label"><input type="checkbox" name="sizes" value="39"> 39</label>
+                            <label class="checkbox-label"><input type="checkbox" name="sizes" value="40"> 40</label>
+                        </div>
                     </div>
                 </div>
+                
+                <div class="form-group">
+                    <label>Colores Disponibles</label>
+                    <div class="checkbox-group" id="colors-checkboxes">
+                        <label class="checkbox-label"><input type="checkbox" name="colors" value="Negro"> Negro</label>
+                        <label class="checkbox-label"><input type="checkbox" name="colors" value="Blanco"> Blanco</label>
+                        <label class="checkbox-label"><input type="checkbox" name="colors" value="Rosa"> Rosa</label>
+                        <label class="checkbox-label"><input type="checkbox" name="colors" value="Rojo"> Rojo</label>
+                        <label class="checkbox-label"><input type="checkbox" name="colors" value="Azul"> Azul</label>
+                        <label class="checkbox-label"><input type="checkbox" name="colors" value="Verde"> Verde</label>
+                        <label class="checkbox-label"><input type="checkbox" name="colors" value="Amarillo"> Amarillo</label>
+                        <label class="checkbox-label"><input type="checkbox" name="colors" value="Morado"> Morado</label>
+                        <label class="checkbox-label"><input type="checkbox" name="colors" value="Café"> Café</label>
+                        <label class="checkbox-label"><input type="checkbox" name="colors" value="Beige"> Beige</label>
+                        <label class="checkbox-label"><input type="checkbox" name="colors" value="Nude"> Nude</label>
+                        <label class="checkbox-label"><input type="checkbox" name="colors" value="Dorado"> Dorado</label>
+                        <label class="checkbox-label"><input type="checkbox" name="colors" value="Plateado"> Plateado</label>
+                        <label class="checkbox-label"><input type="checkbox" name="colors" value="Multicolor"> Multicolor</label>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Foto del Producto</label>
+                    <div class="photo-input-group">
+                        <input type="text" id="product-image-url" placeholder="URL de la imagen" class="form-input">
+                        <span class="input-separator">o</span>
+                        <label class="btn btn-secondary upload-btn">
+                            <span>📷</span> Subir Archivo
+                            <input type="file" id="product-image-file" accept="image/*" hidden>
+                        </label>
+                    </div>
+                    <div class="image-preview-container" id="image-preview-container">
+                        <img id="product-image-preview" src="" alt="Vista previa" class="image-preview hidden">
+                    </div>
+                </div>
+                
                 <div class="form-group">
                     <label for="product-description">Descripción</label>
-                    <textarea id="product-description" class="form-textarea" rows="3"></textarea>
+                    <textarea id="product-description" class="form-textarea" rows="2"></textarea>
                 </div>
                 <input type="hidden" id="product-id">
+                <input type="hidden" id="product-image-data">
             </form>
             <div class="modal-footer">
                 <button class="btn btn-secondary" data-close-modal>Cancelar</button>
@@ -463,6 +658,139 @@
             </div>
         </div>
     </div>
+
+    <!-- Layaway Modal -->
+    <div id="layaway-modal" class="modal">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h3>Nuevo Apartado</h3>
+                <button class="modal-close" data-close-modal>&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="checkout-summary">
+                    <h4>Productos a Apartar</h4>
+                    <div id="layaway-items" class="checkout-items">
+                        <!-- Items will be loaded here -->
+                    </div>
+                    <div class="checkout-totals">
+                        <div class="checkout-row total">
+                            <span>Total:</span>
+                            <span id="layaway-total">$0.00</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="layaway-form">
+                    <h4>Información del Cliente</h4>
+                    <div class="form-group">
+                        <label for="layaway-customer-name">Nombre Completo *</label>
+                        <input type="text" id="layaway-customer-name" required class="form-input" placeholder="Nombre completo del cliente">
+                    </div>
+                    <div class="form-group">
+                        <label for="layaway-customer-phone">Teléfono *</label>
+                        <input type="tel" id="layaway-customer-phone" required class="form-input" placeholder="Número de teléfono">
+                    </div>
+                    <div class="form-group">
+                        <label for="layaway-initial-payment">Monto que deja hoy *</label>
+                        <input type="number" id="layaway-initial-payment" required min="0" step="0.01" class="form-input large-input">
+                    </div>
+                    <div class="layaway-balance">
+                        <span>Saldo Pendiente:</span>
+                        <span id="layaway-pending" class="pending-amount">$0.00</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-close-modal>Cancelar</button>
+                <button class="btn btn-primary btn-lg" id="create-layaway">
+                    <span>📋</span> Crear Apartado
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Layaway Detail Modal -->
+    <div id="layaway-detail-modal" class="modal">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h3>Detalle de Apartado</h3>
+                <button class="modal-close" data-close-modal>&times;</button>
+            </div>
+            <div class="modal-body" id="layaway-detail-content">
+                <!-- Layaway details will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-close-modal>Cerrar</button>
+                <button class="btn btn-primary" id="add-layaway-payment">
+                    <span>💵</span> Agregar Abono
+                </button>
+                <button class="btn btn-success" id="complete-layaway-btn" disabled>
+                    <span>✓</span> Liquidar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Payment Modal -->
+    <div id="payment-modal" class="modal">
+        <div class="modal-content modal-sm">
+            <div class="modal-header">
+                <h3>Agregar Abono</h3>
+                <button class="modal-close" data-close-modal>&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="payment-amount">Monto del Abono</label>
+                    <input type="number" id="payment-amount" min="0" step="0.01" class="form-input large-input">
+                </div>
+                <div class="form-group">
+                    <label for="payment-method-select">Método de Pago</label>
+                    <select id="payment-method-select" class="form-input">
+                        <option value="efectivo">Efectivo</option>
+                        <option value="tarjeta">Tarjeta</option>
+                        <option value="transferencia">Transferencia</option>
+                    </select>
+                </div>
+                <div class="pending-display">
+                    <span>Saldo Pendiente:</span>
+                    <span id="payment-pending" class="pending-amount">$0.00</span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-close-modal>Cancelar</button>
+                <button class="btn btn-primary" id="confirm-payment">Confirmar Abono</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Camera Scanner Modal -->
+    <div id="camera-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Escanear Código</h3>
+                <button class="modal-close" data-close-modal>&times;</button>
+            </div>
+            <div class="modal-body camera-body">
+                <div class="camera-container">
+                    <video id="camera-video" autoplay playsinline></video>
+                    <div class="scan-overlay">
+                        <div class="scan-line"></div>
+                    </div>
+                </div>
+                <p class="camera-hint">Coloca el código de barras frente a la cámara</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-close-modal>Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- WhatsApp Floating Button -->
+    <a href="#" target="_blank" class="whatsapp-float" id="whatsapp-btn" title="Contactar por WhatsApp" onclick="openWhatsApp(event)">
+        <svg viewBox="0 0 32 32" fill="currentColor" class="whatsapp-icon">
+            <path d="M16.004 0h-.008C7.174 0 0 7.176 0 16c0 3.5 1.128 6.744 3.046 9.378L1.052 31.22l6.024-1.932C9.594 30.986 12.684 32 16.004 32 24.826 32 32 24.822 32 16S24.826 0 16.004 0zm9.332 22.608c-.39 1.094-1.922 2.002-3.162 2.268-.848.18-1.956.322-5.684-1.222-4.77-1.974-7.838-6.83-8.074-7.148-.226-.318-1.908-2.544-1.908-4.852s1.21-3.44 1.638-3.91c.428-.47.936-.588 1.248-.588.31 0 .622.002.894.016.286.014.67-.108.95.724.296.854 1.002 3.046 1.09 3.266.088.22.148.476.03.77-.118.296-.176.48-.352.738-.176.258-.37.576-.528.772-.176.22-.36.458-.154.898.206.44.916 1.512 1.968 2.45 1.354 1.206 2.494 1.58 2.846 1.756.352.176.558.148.762-.088.206-.236.876-.998 1.11-1.34.234-.34.47-.28.792-.168.322.11 2.044.966 2.394 1.14.352.176.586.262.674.41.088.148.088.854-.302 1.948z"/>
+        </svg>
+    </a>
 
     <!-- Toast Notifications -->
     <div id="toast-container" class="toast-container"></div>

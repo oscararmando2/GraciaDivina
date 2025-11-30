@@ -1679,3 +1679,625 @@ h4 { font-size: 1.125rem; }
     margin-top: 15px;
     font-size: 10px;
 }
+
+/* ========================================
+   New Styles for Enhanced Features
+   ======================================== */
+
+/* Navigation Badge */
+.nav-badge {
+    background: var(--danger);
+    color: var(--white);
+    font-size: 0.75rem;
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+    margin-left: auto;
+}
+
+.nav-badge:empty {
+    display: none;
+}
+
+/* Search Container Wrapper */
+.search-container-wrapper {
+    display: flex;
+    gap: var(--spacing-sm);
+    flex: 1;
+    max-width: 400px;
+}
+
+.btn-camera-scan {
+    width: 44px;
+    height: 44px;
+    border: 1px solid var(--gray-200);
+    background: var(--white);
+    border-radius: var(--radius-full);
+    font-size: 1.25rem;
+    cursor: pointer;
+    transition: var(--transition-fast);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-camera-scan:hover {
+    border-color: var(--primary);
+    background: rgba(139, 92, 246, 0.05);
+}
+
+/* Cart Actions Row */
+.cart-actions-row {
+    display: flex;
+    gap: var(--spacing-md);
+}
+
+.btn-checkout-main {
+    flex: 1;
+    padding: var(--spacing-md) var(--spacing-lg);
+    font-size: 1.125rem;
+    font-weight: 600;
+}
+
+.btn-apartado {
+    background: linear-gradient(135deg, var(--accent-gold) 0%, #D97706 100%);
+    color: var(--white);
+}
+
+.btn-apartado:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+/* Product Card with Image */
+.product-card-image {
+    width: 100%;
+    height: 100px;
+    object-fit: cover;
+    border-radius: var(--radius-md);
+    margin-bottom: var(--spacing-sm);
+    background: var(--gray-100);
+}
+
+.product-owner-badge {
+    font-size: 0.7rem;
+    color: var(--gray-500);
+    margin-top: var(--spacing-xs);
+}
+
+/* Checkbox Group */
+.checkbox-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm);
+    background: var(--gray-50);
+    border-radius: var(--radius-md);
+    max-height: 120px;
+    overflow-y: auto;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: var(--transition-fast);
+}
+
+.checkbox-label:hover {
+    border-color: var(--primary-light);
+}
+
+.checkbox-label input:checked + span,
+.checkbox-label:has(input:checked) {
+    background: rgba(139, 92, 246, 0.1);
+    border-color: var(--primary);
+}
+
+/* Photo Input */
+.photo-input-group {
+    display: flex;
+    gap: var(--spacing-sm);
+    align-items: center;
+}
+
+.input-separator {
+    color: var(--gray-400);
+    font-size: 0.875rem;
+}
+
+.upload-btn {
+    white-space: nowrap;
+}
+
+.image-preview-container {
+    margin-top: var(--spacing-md);
+    text-align: center;
+}
+
+.image-preview {
+    max-width: 200px;
+    max-height: 150px;
+    border-radius: var(--radius-md);
+    border: 2px solid var(--gray-200);
+}
+
+.image-preview.hidden {
+    display: none;
+}
+
+/* Flex utilities */
+.flex-2 {
+    flex: 2;
+}
+
+/* Owner Add Row */
+.owner-add-row {
+    display: flex;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-md);
+}
+
+.owner-add-row .form-input {
+    flex: 1;
+}
+
+/* Owners List */
+.owners-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+}
+
+.owner-tag {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--gray-100);
+    border-radius: var(--radius-full);
+    font-size: 0.875rem;
+}
+
+.owner-tag .delete-owner {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--gray-400);
+    font-size: 1rem;
+    padding: 0;
+    line-height: 1;
+}
+
+.owner-tag .delete-owner:hover {
+    color: var(--danger);
+}
+
+/* Layaways Page */
+.layaways-summary-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-xl);
+}
+
+.layaways-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.layaway-card {
+    background: var(--white);
+    border-radius: var(--radius-xl);
+    padding: var(--spacing-lg);
+    box-shadow: var(--shadow-sm);
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: var(--spacing-lg);
+    align-items: center;
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.layaway-card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+.layaway-card.completed {
+    opacity: 0.7;
+    background: var(--gray-50);
+}
+
+.layaway-info h4 {
+    margin-bottom: var(--spacing-xs);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.layaway-info p {
+    color: var(--gray-500);
+    font-size: 0.875rem;
+    margin-bottom: var(--spacing-xs);
+}
+
+.layaway-status {
+    display: inline-block;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.layaway-status.pending {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--warning);
+}
+
+.layaway-status.completed {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success);
+}
+
+.layaway-amounts {
+    text-align: right;
+}
+
+.layaway-total {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--gray-900);
+}
+
+.layaway-pending-amount {
+    font-size: 0.875rem;
+    color: var(--warning);
+    font-weight: 500;
+}
+
+/* Layaway Form */
+.layaway-form {
+    margin-top: var(--spacing-lg);
+    padding-top: var(--spacing-lg);
+    border-top: 1px solid var(--gray-100);
+}
+
+.layaway-form h4 {
+    margin-bottom: var(--spacing-md);
+}
+
+.layaway-balance,
+.pending-display {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md);
+    background: var(--gray-50);
+    border-radius: var(--radius-md);
+    margin-top: var(--spacing-md);
+}
+
+.pending-amount {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--warning);
+}
+
+/* Layaway Detail */
+.layaway-detail-section {
+    margin-bottom: var(--spacing-lg);
+    padding-bottom: var(--spacing-lg);
+    border-bottom: 1px solid var(--gray-100);
+}
+
+.layaway-detail-section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.layaway-detail-section h4 {
+    margin-bottom: var(--spacing-md);
+    color: var(--gray-700);
+}
+
+.payments-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.payment-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--gray-50);
+    border-radius: var(--radius-md);
+}
+
+.payment-item-date {
+    font-size: 0.875rem;
+    color: var(--gray-500);
+}
+
+.payment-item-amount {
+    font-weight: 600;
+    color: var(--success);
+}
+
+/* Reports Page */
+.report-container {
+    max-width: 800px;
+}
+
+.report-section {
+    background: var(--white);
+    border-radius: var(--radius-xl);
+    padding: var(--spacing-xl);
+    margin-bottom: var(--spacing-lg);
+    box-shadow: var(--shadow-sm);
+}
+
+.report-section h3 {
+    margin-bottom: var(--spacing-lg);
+    color: var(--gray-800);
+}
+
+.report-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: var(--spacing-md);
+}
+
+.report-card {
+    background: var(--gray-50);
+    padding: var(--spacing-lg);
+    border-radius: var(--radius-lg);
+    text-align: center;
+}
+
+.report-card.total {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+    color: var(--white);
+}
+
+.report-card.warning {
+    background: rgba(245, 158, 11, 0.1);
+}
+
+.report-label {
+    display: block;
+    font-size: 0.875rem;
+    margin-bottom: var(--spacing-sm);
+}
+
+.report-card.total .report-label {
+    opacity: 0.9;
+}
+
+.report-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.report-breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.breakdown-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md);
+    background: var(--gray-50);
+    border-radius: var(--radius-md);
+}
+
+.breakdown-label {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.breakdown-value {
+    font-weight: 600;
+    color: var(--gray-800);
+}
+
+.report-actions {
+    text-align: center;
+    margin-top: var(--spacing-lg);
+}
+
+/* Camera Modal */
+.camera-body {
+    text-align: center;
+}
+
+.camera-container {
+    position: relative;
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto;
+    background: #000;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+.camera-container video {
+    width: 100%;
+    display: block;
+}
+
+.scan-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 80%;
+    height: 100px;
+    border: 2px solid var(--primary);
+    border-radius: var(--radius-md);
+}
+
+.scan-line {
+    position: absolute;
+    width: 100%;
+    height: 2px;
+    background: var(--primary);
+    animation: scanLine 2s linear infinite;
+}
+
+@keyframes scanLine {
+    0% { top: 0; }
+    100% { top: 100%; }
+}
+
+.camera-hint {
+    margin-top: var(--spacing-md);
+    color: var(--gray-500);
+    font-size: 0.875rem;
+}
+
+/* WhatsApp Floating Button */
+.whatsapp-float {
+    position: fixed;
+    bottom: var(--spacing-xl);
+    right: var(--spacing-xl);
+    width: 60px;
+    height: 60px;
+    background: #25D366;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--white);
+    box-shadow: var(--shadow-lg);
+    z-index: 999;
+    transition: var(--transition-fast);
+}
+
+.whatsapp-float:hover {
+    transform: scale(1.1);
+    box-shadow: 0 10px 30px rgba(37, 211, 102, 0.4);
+}
+
+.whatsapp-icon {
+    width: 32px;
+    height: 32px;
+}
+
+/* Products Table Owner Column */
+.owner-badge {
+    display: inline-block;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    background: rgba(139, 92, 246, 0.1);
+    color: var(--primary);
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+/* Product Card in POS with Photo */
+.product-card .product-image {
+    width: 100%;
+    height: 80px;
+    object-fit: cover;
+    border-radius: var(--radius-md);
+    margin-bottom: var(--spacing-sm);
+    background: var(--gray-100);
+}
+
+.product-card .product-owner {
+    font-size: 0.7rem;
+    color: var(--gray-400);
+    margin-top: var(--spacing-xs);
+}
+
+/* Responsive adjustments for new elements */
+@media (max-width: 768px) {
+    .cart-actions-row {
+        flex-direction: column;
+    }
+    
+    .search-container-wrapper {
+        max-width: 100%;
+    }
+    
+    .checkbox-group {
+        max-height: 150px;
+    }
+    
+    .photo-input-group {
+        flex-direction: column;
+    }
+    
+    .owner-add-row {
+        flex-direction: column;
+    }
+    
+    .layaway-card {
+        grid-template-columns: 1fr;
+        text-align: center;
+    }
+    
+    .layaway-amounts {
+        text-align: center;
+    }
+    
+    .whatsapp-float {
+        bottom: var(--spacing-md);
+        right: var(--spacing-md);
+        width: 50px;
+        height: 50px;
+    }
+    
+    .whatsapp-icon {
+        width: 26px;
+        height: 26px;
+    }
+}
+
+/* Ticket Print Styles - Enhanced */
+.ticket-print-new {
+    font-family: 'Courier New', monospace;
+    width: 80mm;
+    padding: 10px;
+    background: white;
+    margin: 0 auto;
+}
+
+.ticket-print-new .ticket-logo {
+    text-align: center;
+    font-size: 2rem;
+    margin-bottom: 10px;
+}
+
+.ticket-print-new .ticket-business-name {
+    text-align: center;
+    font-size: 1.25rem;
+    font-weight: bold;
+    margin-bottom: 15px;
+}
+
+.ticket-print-new .ticket-divider {
+    border-bottom: 1px dashed #000;
+    margin: 10px 0;
+}
+
+.ticket-print-new .ticket-thank-you {
+    text-align: center;
+    font-style: italic;
+    margin-top: 15px;
+    font-size: 0.875rem;
+}

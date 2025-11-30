@@ -11,11 +11,14 @@ const state = {
     selectedProduct: null,
     editingProduct: null,
     currentSale: null,
+    currentLayaway: null,
+    owners: [],
     settings: {
         businessName: 'Gracia Divina',
         businessPhone: '',
         businessAddress: '',
-        ticketFooter: '¡Gracias por su compra!'
+        ticketFooter: '¡Gracias por elegir Gracia Divina!',
+        whatsappNumber: ''
     }
 };
 
@@ -35,11 +38,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Initialize database
         await db.init();
         
+        // Seed default owners
+        await db.seedDefaultOwners();
+        
         // Seed sample data
         await db.seedSampleProducts();
         
         // Load settings
         await loadSettings();
+        
+        // Load owners
+        await loadOwners();
         
         // Initialize UI
         initializeUI();
@@ -47,6 +56,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Load initial data
         await loadProducts();
         await updateSalesSummary();
+        await updateLayawayBadge();
         
         // Hide splash screen
         setTimeout(() => {
@@ -63,6 +73,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateOnlineStatus();
         window.addEventListener('online', updateOnlineStatus);
         window.addEventListener('offline', updateOnlineStatus);
+        
+        // Set report date to today
+        document.getElementById('report-date').value = formatDateForInput(new Date());
         
     } catch (error) {
         console.error('Error initializing app:', error);
@@ -86,6 +99,9 @@ function initializeUI() {
     // Product search
     document.getElementById('product-search').addEventListener('input', debounce(handleProductSearch, 300));
     
+    // Camera scan button
+    document.getElementById('btn-camera-scan').addEventListener('click', openCameraScanner);
+    
     // Category tabs
     document.querySelectorAll('.category-tab').forEach(tab => {
         tab.addEventListener('click', () => handleCategoryFilter(tab.dataset.category));
@@ -94,13 +110,21 @@ function initializeUI() {
     // Cart controls
     document.getElementById('clear-cart').addEventListener('click', clearCart);
     document.getElementById('discount-input').addEventListener('input', updateCartTotals);
-    document.getElementById('btn-checkout').addEventListener('click', openCheckoutModal);
+    
+    // Two checkout buttons
+    document.getElementById('btn-vender').addEventListener('click', openCheckoutModal);
+    document.getElementById('btn-apartado').addEventListener('click', openLayawayModal);
     
     // Product management
     document.getElementById('btn-add-product').addEventListener('click', () => openProductModal());
     document.getElementById('save-product').addEventListener('click', saveProduct);
     document.getElementById('products-filter').addEventListener('input', debounce(filterProductsTable, 300));
     document.getElementById('category-filter').addEventListener('change', filterProductsTable);
+    document.getElementById('owner-filter').addEventListener('change', filterProductsTable);
+    
+    // Product image handling
+    document.getElementById('product-image-url').addEventListener('input', handleImageUrlInput);
+    document.getElementById('product-image-file').addEventListener('change', handleImageFileInput);
     
     // Checkout
     document.querySelectorAll('.payment-option').forEach(option => {
@@ -114,9 +138,24 @@ function initializeUI() {
     document.getElementById('qty-decrease').addEventListener('click', () => changeQuantity(-1));
     document.getElementById('confirm-quantity').addEventListener('click', confirmAddToCart);
     
+    // Layaway
+    document.getElementById('layaway-initial-payment').addEventListener('input', updateLayawayPending);
+    document.getElementById('create-layaway').addEventListener('click', createLayaway);
+    document.getElementById('layaway-search').addEventListener('input', debounce(searchLayaways, 300));
+    document.getElementById('add-layaway-payment').addEventListener('click', openPaymentModal);
+    document.getElementById('confirm-payment').addEventListener('click', confirmLayawayPayment);
+    document.getElementById('complete-layaway-btn').addEventListener('click', completeLayaway);
+    
     // Sales page
     document.getElementById('filter-sales').addEventListener('click', filterSales);
     document.getElementById('print-ticket').addEventListener('click', printTicket);
+    
+    // Reports
+    document.getElementById('generate-report').addEventListener('click', generateReport);
+    document.getElementById('print-report').addEventListener('click', printReport);
+    
+    // Settings - Owner management
+    document.getElementById('add-owner-btn').addEventListener('click', addNewOwner);
     
     // Settings
     document.getElementById('save-settings').addEventListener('click', saveSettings);
@@ -161,12 +200,20 @@ function navigateTo(page) {
     switch (page) {
         case 'products':
             loadProductsTable();
+            loadOwnerFilter();
+            break;
+        case 'layaways':
+            loadLayaways();
             break;
         case 'sales':
             loadSalesHistory();
             break;
+        case 'reports':
+            generateReport();
+            break;
         case 'settings':
             loadSettingsForm();
+            loadOwnersSettings();
             break;
     }
     
@@ -216,13 +263,19 @@ async function loadProducts(category = 'all', searchQuery = '') {
         const emoji = getProductEmoji(product.category, product.id);
         const stockClass = product.stock <= 0 ? 'out' : product.stock <= 5 ? 'low' : '';
         const stockText = product.stock <= 0 ? 'Agotado' : `Stock: ${product.stock}`;
+        const hasImage = product.image || product.imageUrl;
         
         return `
             <div class="product-card" data-product-id="${product.id}" ${product.stock <= 0 ? 'style="opacity: 0.5;"' : ''}>
-                <div class="product-emoji">${emoji}</div>
+                ${hasImage 
+                    ? `<img src="${product.image || product.imageUrl}" alt="${escapeHtml(product.name)}" class="product-image" onerror="this.style.display='none';this.nextElementSibling.style.display='block';">
+                       <div class="product-emoji" style="display:none;">${emoji}</div>`
+                    : `<div class="product-emoji">${emoji}</div>`
+                }
                 <div class="product-name">${escapeHtml(product.name)}</div>
                 <div class="product-price">${formatCurrency(product.price)}</div>
                 <div class="product-stock ${stockClass}">${stockText}</div>
+                ${product.owner ? `<div class="product-owner">${escapeHtml(product.owner)}</div>` : ''}
             </div>
         `;
     }).join('');
@@ -304,7 +357,8 @@ function addToCart(product, quantity = 1) {
             productId: product.id,
             name: product.name,
             price: product.price,
-            quantity: quantity
+            quantity: quantity,
+            owner: product.owner || ''
         });
     }
     
@@ -342,7 +396,8 @@ function clearCart() {
 
 function updateCartUI() {
     const container = document.getElementById('cart-items');
-    const checkoutBtn = document.getElementById('btn-checkout');
+    const venderBtn = document.getElementById('btn-vender');
+    const apartadoBtn = document.getElementById('btn-apartado');
     
     if (state.cart.length === 0) {
         container.innerHTML = `
@@ -351,7 +406,8 @@ function updateCartUI() {
                 <p>Agrega productos a la venta</p>
             </div>
         `;
-        checkoutBtn.disabled = true;
+        venderBtn.disabled = true;
+        apartadoBtn.disabled = true;
     } else {
         container.innerHTML = state.cart.map(item => `
             <div class="cart-item">
@@ -368,7 +424,8 @@ function updateCartUI() {
                 <button class="cart-item-remove" onclick="removeFromCart(${item.productId})">×</button>
             </div>
         `).join('');
-        checkoutBtn.disabled = false;
+        venderBtn.disabled = false;
+        apartadoBtn.disabled = false;
     }
     
     updateCartTotals();
@@ -468,7 +525,8 @@ async function completeSale() {
                 name: item.name,
                 price: item.price,
                 quantity: item.quantity,
-                subtotal: item.price * item.quantity
+                subtotal: item.price * item.quantity,
+                owner: item.owner || ''
             })),
             subtotal,
             discountPercent,
@@ -517,7 +575,7 @@ async function loadProductsTable() {
     if (products.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="5" style="text-align: center; padding: 40px;">
+                <td colspan="6" style="text-align: center; padding: 40px;">
                     No hay productos registrados
                 </td>
             </tr>
@@ -528,21 +586,26 @@ async function loadProductsTable() {
     tbody.innerHTML = products.map(product => {
         const emoji = getProductEmoji(product.category, product.id);
         const stockClass = product.stock <= 0 ? 'out-of-stock' : product.stock <= 5 ? 'low-stock' : 'in-stock';
+        const hasImage = product.image || product.imageUrl;
         
         return `
-            <tr>
+            <tr data-owner="${product.owner || ''}">
                 <td>
                     <div class="product-info">
-                        <span class="product-info-emoji">${emoji}</span>
+                        ${hasImage 
+                            ? `<img src="${product.image || product.imageUrl}" alt="" class="product-info-emoji" style="width:40px;height:40px;object-fit:cover;border-radius:8px;" onerror="this.outerHTML='<span class=\\'product-info-emoji\\'>${emoji}</span>'">`
+                            : `<span class="product-info-emoji">${emoji}</span>`
+                        }
                         <div class="product-info-details">
                             <h4>${escapeHtml(product.name)}</h4>
-                            <small>${product.sku || 'Sin SKU'}</small>
+                            <small>${product.sku || 'Sin código'}</small>
                         </div>
                     </div>
                 </td>
                 <td><span class="category-badge">${product.category}</span></td>
                 <td><strong>${formatCurrency(product.price)}</strong></td>
                 <td><span class="stock-badge ${stockClass}">${product.stock}</span></td>
+                <td>${product.owner ? `<span class="owner-badge">${escapeHtml(product.owner)}</span>` : '-'}</td>
                 <td>
                     <div class="action-buttons">
                         <button class="btn-icon edit" onclick="editProduct(${product.id})" title="Editar">✏️</button>
@@ -554,27 +617,49 @@ async function loadProductsTable() {
     }).join('');
 }
 
+async function loadOwnerFilter() {
+    const select = document.getElementById('owner-filter');
+    const owners = await db.getAllOwners();
+    
+    select.innerHTML = '<option value="all">Todas las dueñas</option>' +
+        owners.map(o => `<option value="${escapeHtml(o.name)}">${escapeHtml(o.name)}</option>`).join('');
+}
+
 function filterProductsTable() {
     const query = document.getElementById('products-filter').value.toLowerCase();
     const category = document.getElementById('category-filter').value;
+    const owner = document.getElementById('owner-filter').value;
     
     document.querySelectorAll('#products-table-body tr').forEach(row => {
         const name = row.querySelector('.product-info-details h4')?.textContent.toLowerCase() || '';
         const sku = row.querySelector('.product-info-details small')?.textContent.toLowerCase() || '';
         const rowCategory = row.querySelector('.category-badge')?.textContent.toLowerCase() || '';
+        const rowOwner = row.dataset.owner || '';
         
         const matchesQuery = name.includes(query) || sku.includes(query);
         const matchesCategory = category === 'all' || rowCategory === category;
+        const matchesOwner = owner === 'all' || rowOwner === owner;
         
-        row.style.display = matchesQuery && matchesCategory ? '' : 'none';
+        row.style.display = matchesQuery && matchesCategory && matchesOwner ? '' : 'none';
     });
 }
 
-function openProductModal(product = null) {
+async function openProductModal(product = null) {
     state.editingProduct = product;
+    
+    // Load owners into select
+    await loadProductOwnerSelect();
     
     document.getElementById('product-modal-title').textContent = product ? 'Editar Producto' : 'Nuevo Producto';
     document.getElementById('product-form').reset();
+    
+    // Reset checkboxes
+    document.querySelectorAll('input[name="sizes"]').forEach(cb => cb.checked = false);
+    document.querySelectorAll('input[name="colors"]').forEach(cb => cb.checked = false);
+    
+    // Reset image preview
+    document.getElementById('product-image-preview').classList.add('hidden');
+    document.getElementById('product-image-data').value = '';
     
     if (product) {
         document.getElementById('product-id').value = product.id;
@@ -584,9 +669,73 @@ function openProductModal(product = null) {
         document.getElementById('product-stock').value = product.stock;
         document.getElementById('product-sku').value = product.sku || '';
         document.getElementById('product-description').value = product.description || '';
+        document.getElementById('product-owner').value = product.owner || '';
+        
+        // Set sizes checkboxes
+        if (product.sizes && Array.isArray(product.sizes)) {
+            product.sizes.forEach(size => {
+                const checkbox = document.querySelector(`input[name="sizes"][value="${size}"]`);
+                if (checkbox) checkbox.checked = true;
+            });
+        }
+        
+        // Set colors checkboxes
+        if (product.colors && Array.isArray(product.colors)) {
+            product.colors.forEach(color => {
+                const checkbox = document.querySelector(`input[name="colors"][value="${color}"]`);
+                if (checkbox) checkbox.checked = true;
+            });
+        }
+        
+        // Set image preview
+        const imageUrl = product.image || product.imageUrl;
+        if (imageUrl) {
+            document.getElementById('product-image-url').value = product.imageUrl || '';
+            document.getElementById('product-image-preview').src = imageUrl;
+            document.getElementById('product-image-preview').classList.remove('hidden');
+            if (product.image) {
+                document.getElementById('product-image-data').value = product.image;
+            }
+        }
     }
     
     openModal('product-modal');
+}
+
+async function loadProductOwnerSelect() {
+    const select = document.getElementById('product-owner');
+    const owners = await db.getAllOwners();
+    
+    select.innerHTML = '<option value="">Seleccionar dueña...</option>' +
+        owners.map(o => `<option value="${escapeHtml(o.name)}">${escapeHtml(o.name)}</option>`).join('');
+}
+
+function handleImageUrlInput(e) {
+    const url = e.target.value.trim();
+    const preview = document.getElementById('product-image-preview');
+    
+    if (url) {
+        preview.src = url;
+        preview.classList.remove('hidden');
+        preview.onerror = () => preview.classList.add('hidden');
+    } else {
+        preview.classList.add('hidden');
+    }
+}
+
+function handleImageFileInput(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        const base64 = event.target.result;
+        document.getElementById('product-image-data').value = base64;
+        document.getElementById('product-image-preview').src = base64;
+        document.getElementById('product-image-preview').classList.remove('hidden');
+        document.getElementById('product-image-url').value = '';
+    };
+    reader.readAsDataURL(file);
 }
 
 async function editProduct(productId) {
@@ -603,13 +752,30 @@ async function saveProduct() {
         return;
     }
     
+    // Get selected sizes
+    const sizes = Array.from(document.querySelectorAll('input[name="sizes"]:checked'))
+        .map(cb => cb.value);
+    
+    // Get selected colors
+    const colors = Array.from(document.querySelectorAll('input[name="colors"]:checked'))
+        .map(cb => cb.value);
+    
+    // Get image (prioritize uploaded file, then URL)
+    const imageData = document.getElementById('product-image-data').value;
+    const imageUrl = document.getElementById('product-image-url').value.trim();
+    
     const product = {
         name: document.getElementById('product-name').value.trim(),
         category: document.getElementById('product-category').value,
         price: parseFloat(document.getElementById('product-price').value),
         stock: parseInt(document.getElementById('product-stock').value) || 0,
         sku: document.getElementById('product-sku').value.trim(),
-        description: document.getElementById('product-description').value.trim()
+        description: document.getElementById('product-description').value.trim(),
+        owner: document.getElementById('product-owner').value,
+        sizes,
+        colors,
+        image: imageData || null,
+        imageUrl: imageUrl || null
     };
     
     try {
@@ -724,10 +890,12 @@ async function viewSaleDetails(saleId) {
     
     state.currentSale = sale;
     
+    // Note: Ticket NEVER shows owner information - only shows: logo, products, total, thank you message
     const content = document.getElementById('sale-detail-content');
     content.innerHTML = `
         <div class="ticket-print">
             <div class="ticket-header">
+                <div style="font-size: 2rem; margin-bottom: 10px;">✨</div>
                 <h2>${state.settings.businessName}</h2>
                 ${state.settings.businessPhone ? `<p>Tel: ${state.settings.businessPhone}</p>` : ''}
                 ${state.settings.businessAddress ? `<p>${state.settings.businessAddress}</p>` : ''}
@@ -735,7 +903,6 @@ async function viewSaleDetails(saleId) {
             <div class="ticket-info">
                 <p>Ticket: <strong>${sale.ticketNumber}</strong></p>
                 <p>Fecha: ${formatDateTime(sale.date)}</p>
-                <p>Pago: ${sale.paymentMethod}</p>
             </div>
             <div class="ticket-items">
                 ${sale.items.map(item => `
@@ -746,11 +913,11 @@ async function viewSaleDetails(saleId) {
                 `).join('')}
             </div>
             <div class="ticket-totals">
-                <div class="ticket-total-row">
-                    <span>Subtotal:</span>
-                    <span>${formatCurrency(sale.subtotal)}</span>
-                </div>
                 ${sale.discount > 0 ? `
+                    <div class="ticket-total-row">
+                        <span>Subtotal:</span>
+                        <span>${formatCurrency(sale.subtotal)}</span>
+                    </div>
                     <div class="ticket-total-row">
                         <span>Descuento (${sale.discountPercent}%):</span>
                         <span>-${formatCurrency(sale.discount)}</span>
@@ -772,7 +939,7 @@ async function viewSaleDetails(saleId) {
                 ` : ''}
             </div>
             <div class="ticket-footer">
-                <p>${state.settings.ticketFooter}</p>
+                <p>${state.settings.ticketFooter || '¡Gracias por elegir Gracia Divina!'}</p>
             </div>
         </div>
     `;
@@ -783,16 +950,18 @@ async function viewSaleDetails(saleId) {
 function printTicket() {
     if (!state.currentSale) return;
     
-    const printContent = document.getElementById('sale-detail-content').innerHTML;
+    // Print ticket - NEVER includes owner information
+    const sale = state.currentSale;
     const printWindow = window.open('', '_blank');
     
     printWindow.document.write(`
         <!DOCTYPE html>
         <html>
         <head>
-            <title>Ticket - ${state.currentSale.ticketNumber}</title>
+            <title>Ticket - ${sale.ticketNumber}</title>
             <style>
                 body { font-family: 'Courier New', monospace; font-size: 12px; max-width: 300px; margin: 0 auto; padding: 20px; }
+                .ticket-logo { text-align: center; font-size: 2rem; margin-bottom: 10px; }
                 .ticket-header { text-align: center; margin-bottom: 15px; border-bottom: 1px dashed #000; padding-bottom: 10px; }
                 .ticket-header h2 { margin: 0; font-size: 18px; }
                 .ticket-info { margin-bottom: 15px; font-size: 11px; }
@@ -801,11 +970,35 @@ function printTicket() {
                 .ticket-totals { padding: 10px 0; }
                 .ticket-total-row { display: flex; justify-content: space-between; margin-bottom: 3px; }
                 .ticket-total-row.final { font-weight: bold; font-size: 14px; border-top: 1px solid #000; padding-top: 5px; margin-top: 5px; }
-                .ticket-footer { text-align: center; margin-top: 15px; font-size: 10px; }
+                .ticket-footer { text-align: center; margin-top: 15px; font-size: 11px; font-style: italic; }
             </style>
         </head>
         <body>
-            ${printContent}
+            <div class="ticket-logo">✨</div>
+            <div class="ticket-header">
+                <h2>${state.settings.businessName}</h2>
+            </div>
+            <div class="ticket-info">
+                <p>Ticket: ${sale.ticketNumber}</p>
+                <p>Fecha: ${formatDateTime(sale.date)}</p>
+            </div>
+            <div class="ticket-items">
+                ${sale.items.map(item => `
+                    <div class="ticket-item">
+                        <span>${item.quantity}x ${item.name}</span>
+                        <span>${formatCurrency(item.subtotal)}</span>
+                    </div>
+                `).join('')}
+            </div>
+            <div class="ticket-totals">
+                <div class="ticket-total-row final">
+                    <span>TOTAL:</span>
+                    <span>${formatCurrency(sale.total)}</span>
+                </div>
+            </div>
+            <div class="ticket-footer">
+                <p>${state.settings.ticketFooter || '¡Gracias por elegir Gracia Divina!'}</p>
+            </div>
         </body>
         </html>
     `);
@@ -916,18 +1109,531 @@ async function resetData() {
     
     try {
         await db.resetAllData();
+        await db.seedDefaultOwners();
         await db.seedSampleProducts();
         
         state.cart = [];
         updateCartUI();
+        await loadOwners();
         await loadProducts();
         await loadProductsTable();
         await loadSalesHistory();
+        await updateLayawayBadge();
         
         showToast('Datos restablecidos', 'success');
     } catch (error) {
         console.error('Error resetting data:', error);
         showToast('Error al restablecer los datos', 'error');
+    }
+}
+
+// ========================================
+// OWNERS MANAGEMENT
+// ========================================
+async function loadOwners() {
+    state.owners = await db.getAllOwners();
+}
+
+async function loadOwnersSettings() {
+    const owners = await db.getAllOwners();
+    const container = document.getElementById('owners-list');
+    
+    container.innerHTML = owners.map(owner => `
+        <div class="owner-tag">
+            <span>${escapeHtml(owner.name)}</span>
+            <button class="delete-owner" onclick="deleteOwner(${owner.id})" title="Eliminar">×</button>
+        </div>
+    `).join('');
+}
+
+async function addNewOwner() {
+    const input = document.getElementById('new-owner-name');
+    const name = input.value.trim();
+    
+    if (!name) {
+        showToast('Ingresa un nombre', 'warning');
+        return;
+    }
+    
+    try {
+        await db.addOwner(name);
+        input.value = '';
+        await loadOwners();
+        await loadOwnersSettings();
+        showToast('Dueña agregada', 'success');
+    } catch (error) {
+        console.error('Error adding owner:', error);
+        showToast('Error al agregar dueña', 'error');
+    }
+}
+
+async function deleteOwner(ownerId) {
+    if (!confirm('¿Estás seguro de eliminar esta dueña?')) return;
+    
+    try {
+        await db.deleteOwner(ownerId);
+        await loadOwners();
+        await loadOwnersSettings();
+        showToast('Dueña eliminada', 'success');
+    } catch (error) {
+        console.error('Error deleting owner:', error);
+        showToast('Error al eliminar dueña', 'error');
+    }
+}
+
+// ========================================
+// LAYAWAY (APARTADO) SYSTEM
+// ========================================
+async function updateLayawayBadge() {
+    const pending = await db.getPendingLayaways();
+    const badge = document.getElementById('layaway-count-badge');
+    badge.textContent = pending.length > 0 ? pending.length : '';
+}
+
+function openLayawayModal() {
+    if (state.cart.length === 0) return;
+    
+    const total = state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    
+    // Populate items
+    document.getElementById('layaway-items').innerHTML = state.cart.map(item => `
+        <div class="checkout-item">
+            <span class="checkout-item-name">${escapeHtml(item.name)}</span>
+            <span class="checkout-item-qty">x${item.quantity}</span>
+            <span>${formatCurrency(item.price * item.quantity)}</span>
+        </div>
+    `).join('');
+    
+    document.getElementById('layaway-total').textContent = formatCurrency(total);
+    document.getElementById('layaway-customer-name').value = '';
+    document.getElementById('layaway-customer-phone').value = '';
+    document.getElementById('layaway-initial-payment').value = '';
+    document.getElementById('layaway-pending').textContent = formatCurrency(total);
+    
+    openModal('layaway-modal');
+}
+
+function updateLayawayPending() {
+    const total = state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const initial = parseFloat(document.getElementById('layaway-initial-payment').value) || 0;
+    const pending = Math.max(0, total - initial);
+    document.getElementById('layaway-pending').textContent = formatCurrency(pending);
+}
+
+async function createLayaway() {
+    const customerName = document.getElementById('layaway-customer-name').value.trim();
+    const customerPhone = document.getElementById('layaway-customer-phone').value.trim();
+    const initialPayment = parseFloat(document.getElementById('layaway-initial-payment').value) || 0;
+    
+    if (!customerName || !customerPhone) {
+        showToast('Completa nombre y teléfono', 'warning');
+        return;
+    }
+    
+    if (initialPayment <= 0) {
+        showToast('Ingresa un monto inicial', 'warning');
+        return;
+    }
+    
+    const total = state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    
+    const layaway = {
+        customerName,
+        customerPhone,
+        items: state.cart.map(item => ({
+            productId: item.productId,
+            name: item.name,
+            price: item.price,
+            quantity: item.quantity,
+            subtotal: item.price * item.quantity,
+            owner: item.owner || ''
+        })),
+        subtotal: total,
+        total,
+        totalPaid: initialPayment,
+        pendingAmount: total - initialPayment,
+        payments: [{
+            amount: initialPayment,
+            paymentMethod: 'efectivo',
+            date: new Date().toISOString()
+        }]
+    };
+    
+    try {
+        await db.addLayaway(layaway);
+        
+        // Clear cart
+        state.cart = [];
+        document.getElementById('discount-input').value = 0;
+        updateCartUI();
+        
+        closeAllModals();
+        
+        // Refresh products and update badge
+        const activeCategory = document.querySelector('.category-tab.active').dataset.category;
+        const searchQuery = document.getElementById('product-search').value;
+        await loadProducts(activeCategory, searchQuery);
+        await updateLayawayBadge();
+        
+        showToast('Apartado creado exitosamente', 'success');
+    } catch (error) {
+        console.error('Error creating layaway:', error);
+        showToast('Error al crear apartado', 'error');
+    }
+}
+
+async function loadLayaways() {
+    const layaways = await db.getAllLayaways();
+    const pending = layaways.filter(l => l.status === 'pending');
+    const completed = layaways.filter(l => l.status === 'completed');
+    
+    // Update summary
+    const pendingAmount = pending.reduce((sum, l) => sum + l.pendingAmount, 0);
+    document.getElementById('pending-layaways-count').textContent = pending.length;
+    document.getElementById('pending-layaways-amount').textContent = formatCurrency(pendingAmount);
+    
+    // Render list
+    const container = document.getElementById('layaways-list');
+    
+    if (layaways.length === 0) {
+        container.innerHTML = `
+            <div class="cart-empty" style="padding: 60px;">
+                <span class="empty-icon">📋</span>
+                <p>No hay apartados registrados</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = layaways.map(layaway => `
+        <div class="layaway-card ${layaway.status}" onclick="viewLayawayDetails(${layaway.id})">
+            <div class="layaway-info">
+                <h4>
+                    ${escapeHtml(layaway.customerName)}
+                    <span class="layaway-status ${layaway.status}">
+                        ${layaway.status === 'pending' ? 'Pendiente' : 'Completado'}
+                    </span>
+                </h4>
+                <p>📞 ${escapeHtml(layaway.customerPhone)}</p>
+                <p>📅 ${formatDateTime(layaway.date)}</p>
+                <p>${layaway.items.length} producto(s)</p>
+            </div>
+            <div class="layaway-amounts">
+                <div class="layaway-total">${formatCurrency(layaway.total)}</div>
+                ${layaway.status === 'pending' 
+                    ? `<div class="layaway-pending-amount">Pendiente: ${formatCurrency(layaway.pendingAmount)}</div>` 
+                    : ''}
+            </div>
+        </div>
+    `).join('');
+}
+
+async function searchLayaways() {
+    const query = document.getElementById('layaway-search').value.trim();
+    
+    if (!query) {
+        await loadLayaways();
+        return;
+    }
+    
+    const layaways = await db.searchLayaways(query);
+    const container = document.getElementById('layaways-list');
+    
+    if (layaways.length === 0) {
+        container.innerHTML = `
+            <div class="cart-empty" style="padding: 60px;">
+                <span class="empty-icon">🔍</span>
+                <p>No se encontraron apartados</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = layaways.map(layaway => `
+        <div class="layaway-card ${layaway.status}" onclick="viewLayawayDetails(${layaway.id})">
+            <div class="layaway-info">
+                <h4>
+                    ${escapeHtml(layaway.customerName)}
+                    <span class="layaway-status ${layaway.status}">
+                        ${layaway.status === 'pending' ? 'Pendiente' : 'Completado'}
+                    </span>
+                </h4>
+                <p>📞 ${escapeHtml(layaway.customerPhone)}</p>
+                <p>📅 ${formatDateTime(layaway.date)}</p>
+            </div>
+            <div class="layaway-amounts">
+                <div class="layaway-total">${formatCurrency(layaway.total)}</div>
+                ${layaway.status === 'pending' 
+                    ? `<div class="layaway-pending-amount">Pendiente: ${formatCurrency(layaway.pendingAmount)}</div>` 
+                    : ''}
+            </div>
+        </div>
+    `).join('');
+}
+
+async function viewLayawayDetails(layawayId) {
+    const layaway = await db.getLayaway(layawayId);
+    if (!layaway) return;
+    
+    state.currentLayaway = layaway;
+    
+    const content = document.getElementById('layaway-detail-content');
+    content.innerHTML = `
+        <div class="layaway-detail-section">
+            <h4>👤 Cliente</h4>
+            <p><strong>${escapeHtml(layaway.customerName)}</strong></p>
+            <p>📞 ${escapeHtml(layaway.customerPhone)}</p>
+            <p>📅 Creado: ${formatDateTime(layaway.date)}</p>
+        </div>
+        
+        <div class="layaway-detail-section">
+            <h4>🛍️ Productos</h4>
+            <div class="checkout-items">
+                ${layaway.items.map(item => `
+                    <div class="checkout-item">
+                        <span class="checkout-item-name">${escapeHtml(item.name)}</span>
+                        <span class="checkout-item-qty">x${item.quantity}</span>
+                        <span>${formatCurrency(item.subtotal)}</span>
+                    </div>
+                `).join('')}
+            </div>
+            <div class="checkout-totals">
+                <div class="checkout-row total">
+                    <span>Total:</span>
+                    <span>${formatCurrency(layaway.total)}</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="layaway-detail-section">
+            <h4>💵 Abonos</h4>
+            <div class="payments-list">
+                ${layaway.payments.map(payment => `
+                    <div class="payment-item">
+                        <div>
+                            <span class="payment-item-date">${formatDateTime(payment.date)}</span>
+                            <small>(${payment.paymentMethod})</small>
+                        </div>
+                        <span class="payment-item-amount">${formatCurrency(payment.amount)}</span>
+                    </div>
+                `).join('')}
+            </div>
+            <div class="layaway-balance">
+                <span>Total Pagado:</span>
+                <span style="color: var(--success); font-size: 1.25rem; font-weight: 700;">${formatCurrency(layaway.totalPaid)}</span>
+            </div>
+            <div class="layaway-balance">
+                <span>Saldo Pendiente:</span>
+                <span class="pending-amount">${formatCurrency(layaway.pendingAmount)}</span>
+            </div>
+        </div>
+    `;
+    
+    // Update buttons
+    document.getElementById('add-layaway-payment').style.display = layaway.status === 'pending' ? '' : 'none';
+    document.getElementById('complete-layaway-btn').disabled = layaway.pendingAmount > 0;
+    document.getElementById('complete-layaway-btn').style.display = layaway.status === 'pending' ? '' : 'none';
+    
+    openModal('layaway-detail-modal');
+}
+
+function openPaymentModal() {
+    if (!state.currentLayaway) return;
+    
+    document.getElementById('payment-amount').value = '';
+    document.getElementById('payment-pending').textContent = formatCurrency(state.currentLayaway.pendingAmount);
+    document.getElementById('payment-method-select').value = 'efectivo';
+    
+    openModal('payment-modal');
+}
+
+async function confirmLayawayPayment() {
+    const amount = parseFloat(document.getElementById('payment-amount').value) || 0;
+    const method = document.getElementById('payment-method-select').value;
+    
+    if (amount <= 0) {
+        showToast('Ingresa un monto válido', 'warning');
+        return;
+    }
+    
+    if (amount > state.currentLayaway.pendingAmount) {
+        showToast('El monto excede el saldo pendiente', 'warning');
+        return;
+    }
+    
+    try {
+        await db.addLayawayPayment(state.currentLayaway.id, amount, method);
+        
+        closeAllModals();
+        await loadLayaways();
+        await updateLayawayBadge();
+        
+        // Reopen layaway details with updated info
+        await viewLayawayDetails(state.currentLayaway.id);
+        
+        showToast('Abono registrado', 'success');
+    } catch (error) {
+        console.error('Error adding payment:', error);
+        showToast('Error al registrar abono', 'error');
+    }
+}
+
+async function completeLayaway() {
+    if (!state.currentLayaway || state.currentLayaway.pendingAmount > 0) {
+        showToast('Aún hay saldo pendiente', 'warning');
+        return;
+    }
+    
+    if (!confirm('¿Confirmas liquidar este apartado?')) return;
+    
+    try {
+        const sale = await db.completeLayaway(state.currentLayaway.id);
+        
+        closeAllModals();
+        await loadLayaways();
+        await updateLayawayBadge();
+        await updateSalesSummary();
+        
+        showToast(`Apartado liquidado - Ticket #${sale.ticketNumber}`, 'success');
+    } catch (error) {
+        console.error('Error completing layaway:', error);
+        showToast('Error al liquidar apartado', 'error');
+    }
+}
+
+// ========================================
+// REPORTS (CIERRE DE CAJA)
+// ========================================
+async function generateReport() {
+    const reportDate = document.getElementById('report-date').value;
+    const date = reportDate ? new Date(reportDate) : new Date();
+    
+    // Set date range for the selected day
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+    
+    const sales = await db.getSalesByDateRange(startOfDay, endOfDay);
+    const layaways = await db.getPendingLayaways();
+    
+    // Total sold
+    const totalSold = sales.reduce((sum, sale) => sum + sale.total, 0);
+    document.getElementById('report-total-sold').textContent = formatCurrency(totalSold);
+    document.getElementById('report-transactions').textContent = sales.length;
+    
+    // Payment method breakdown
+    const paymentBreakdown = {};
+    sales.forEach(sale => {
+        const method = sale.paymentMethod || 'efectivo';
+        paymentBreakdown[method] = (paymentBreakdown[method] || 0) + sale.total;
+    });
+    
+    const paymentIcons = { efectivo: '💵', tarjeta: '💳', transferencia: '📱', apartado: '📋' };
+    document.getElementById('payment-breakdown').innerHTML = Object.entries(paymentBreakdown).map(([method, amount]) => `
+        <div class="breakdown-row">
+            <span class="breakdown-label">
+                <span>${paymentIcons[method] || '💰'}</span>
+                <span>${method.charAt(0).toUpperCase() + method.slice(1)}</span>
+            </span>
+            <span class="breakdown-value">${formatCurrency(amount)}</span>
+        </div>
+    `).join('') || '<p style="color: var(--gray-400);">Sin ventas este día</p>';
+    
+    // Owner breakdown
+    const ownerBreakdown = {};
+    sales.forEach(sale => {
+        sale.items.forEach(item => {
+            const owner = item.owner || 'Sin asignar';
+            ownerBreakdown[owner] = (ownerBreakdown[owner] || 0) + item.subtotal;
+        });
+    });
+    
+    document.getElementById('owner-breakdown').innerHTML = Object.entries(ownerBreakdown).map(([owner, amount]) => `
+        <div class="breakdown-row">
+            <span class="breakdown-label">
+                <span>👩</span>
+                <span>Vendido de ${owner}:</span>
+            </span>
+            <span class="breakdown-value">${formatCurrency(amount)}</span>
+        </div>
+    `).join('') || '<p style="color: var(--gray-400);">Sin ventas este día</p>';
+    
+    // Pending layaways
+    const pendingAmount = layaways.reduce((sum, l) => sum + l.pendingAmount, 0);
+    document.getElementById('report-pending-layaways').textContent = layaways.length;
+    document.getElementById('report-pending-amount').textContent = formatCurrency(pendingAmount);
+}
+
+function printReport() {
+    const reportContent = document.getElementById('report-container').innerHTML;
+    const reportDate = document.getElementById('report-date').value;
+    
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Cierre de Caja - ${reportDate}</title>
+            <style>
+                body { font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; }
+                h2 { text-align: center; margin-bottom: 20px; }
+                .report-section { margin-bottom: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }
+                .report-section h3 { margin-bottom: 10px; }
+                .report-grid { display: flex; gap: 20px; }
+                .report-card { flex: 1; padding: 15px; background: #f5f5f5; border-radius: 8px; text-align: center; }
+                .report-card.total { background: #8B5CF6; color: white; }
+                .report-card.warning { background: #FEF3C7; }
+                .report-label { display: block; font-size: 12px; margin-bottom: 5px; }
+                .report-value { font-size: 20px; font-weight: bold; }
+                .breakdown-row { display: flex; justify-content: space-between; padding: 8px; background: #f5f5f5; margin-bottom: 5px; border-radius: 4px; }
+                .report-actions { display: none; }
+            </style>
+        </head>
+        <body>
+            <h2>✨ Gracia Divina - Cierre de Caja</h2>
+            <p style="text-align: center;">Fecha: ${reportDate}</p>
+            ${reportContent}
+        </body>
+        </html>
+    `);
+    
+    printWindow.document.close();
+    printWindow.onload = () => {
+        printWindow.print();
+        printWindow.close();
+    };
+}
+
+// ========================================
+// CAMERA SCANNER
+// ========================================
+let cameraStream = null;
+
+function openCameraScanner() {
+    const video = document.getElementById('camera-video');
+    
+    navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'environment' } 
+    })
+    .then(stream => {
+        cameraStream = stream;
+        video.srcObject = stream;
+        openModal('camera-modal');
+        
+        // Note: For actual barcode scanning, you'd need a library like QuaggaJS
+        showToast('Escaneo de códigos próximamente', 'info');
+    })
+    .catch(error => {
+        console.error('Camera error:', error);
+        showToast('No se pudo acceder a la cámara', 'error');
+    });
+}
+
+function stopCameraScanner() {
+    if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+        cameraStream = null;
     }
 }
 
@@ -944,6 +1650,9 @@ function closeAllModals() {
         modal.classList.remove('active');
     });
     document.body.style.overflow = '';
+    
+    // Stop camera if open
+    stopCameraScanner();
 }
 
 // ========================================
@@ -1031,9 +1740,20 @@ function updateOnlineStatus() {
     }
 }
 
+// WhatsApp helper function
+function openWhatsApp(event) {
+    event.preventDefault();
+    const phone = state.settings.businessPhone ? state.settings.businessPhone.replace(/\D/g, '') : '';
+    const url = phone ? `https://wa.me/${phone}` : 'https://wa.me/';
+    window.open(url, '_blank');
+}
+
 // Make functions available globally for inline event handlers
 window.updateCartItemQuantity = updateCartItemQuantity;
 window.removeFromCart = removeFromCart;
 window.editProduct = editProduct;
 window.deleteProduct = deleteProduct;
 window.viewSaleDetails = viewSaleDetails;
+window.viewLayawayDetails = viewLayawayDetails;
+window.deleteOwner = deleteOwner;
+window.openWhatsApp = openWhatsApp;
