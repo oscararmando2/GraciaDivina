@@ -2826,8 +2826,8 @@ h4 { font-size: 1.125rem; }
     }
     
     /* Hide the internal mobile menu container in POS since we have the main header now */
-    .mobile-menu-container {
-        display: none !important;
+    .cart-header-actions .mobile-menu-container {
+        display: none;
     }
     
     /* ========================================

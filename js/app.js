@@ -3,6 +3,11 @@
  */
 
 // ========================================
+// CONSTANTS
+// ========================================
+const MOBILE_BREAKPOINT = 768;
+
+// ========================================
 // APP STATE
 // ========================================
 const state = {
@@ -263,7 +268,7 @@ function navigateTo(page) {
     }
     
     // Close sidebar on mobile
-    if (window.innerWidth <= 768) {
+    if (window.innerWidth <= MOBILE_BREAKPOINT) {
         closeSidebar();
     }
 }
@@ -279,7 +284,7 @@ function toggleSidebar() {
     }
     
     // Prevent body scroll when sidebar is open on mobile
-    if (sidebar.classList.contains('open') && window.innerWidth <= 768) {
+    if (sidebar.classList.contains('open') && window.innerWidth <= MOBILE_BREAKPOINT) {
         document.body.style.overflow = 'hidden';
     } else {
         document.body.style.overflow = '';
