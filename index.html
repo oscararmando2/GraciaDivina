@@ -94,30 +94,34 @@
         <main class="main-content">
             <!-- POS Page -->
             <section id="page-pos" class="page active">
-                <div class="pos-container">
-                    <!-- Cart Section (moved to left) -->
-                    <div class="pos-cart">
+                <div class="pos-container pos-container-full">
+                    <!-- Cart Section (Full Width) -->
+                    <div class="pos-cart pos-cart-full">
                         <div class="cart-header">
-                            <h3>Venta Actual</h3>
+                            <h3>🛒 Punto de Venta</h3>
                             <button class="btn-clear-cart" id="clear-cart" title="Limpiar carrito">🗑️</button>
                         </div>
                         
                         <!-- UPC Scanner Input -->
-                        <div class="upc-scanner-container">
-                            <div class="search-container">
-                                <input type="text" id="upc-scanner-input" placeholder="Escanear código UPC..." class="search-input" autofocus>
-                                <span class="search-icon">📦</span>
+                        <div class="upc-scanner-container upc-scanner-large">
+                            <div class="search-container search-container-full">
+                                <input type="text" id="upc-scanner-input" placeholder="📦 Escanear código UPC o buscar producto..." class="search-input search-input-large" autofocus>
+                                <span class="search-icon">🔍</span>
                             </div>
+                            <button class="btn-camera-scan btn-camera-scan-large" id="btn-camera-scan" title="Escanear con cámara">
+                                📷
+                            </button>
                         </div>
                         
-                        <div class="cart-items" id="cart-items">
-                            <div class="cart-empty">
+                        <div class="cart-items cart-items-large" id="cart-items">
+                            <div class="cart-empty cart-empty-large">
                                 <span class="empty-icon">🛍️</span>
-                                <p>Agrega productos a la venta</p>
+                                <p>Escanea o busca productos para agregar a la venta</p>
+                                <small>Usa el escáner UPC o ve a "Productos" para seleccionar</small>
                             </div>
                         </div>
                         
-                        <div class="cart-summary">
+                        <div class="cart-summary cart-summary-large">
                             <div class="summary-row">
                                 <span>Subtotal:</span>
                                 <span id="cart-subtotal">$0.00</span>
@@ -135,45 +139,17 @@
                             </div>
                         </div>
                         
-                        <div class="cart-actions">
+                        <div class="cart-actions cart-actions-large">
                             <div class="cart-actions-row">
-                                <button class="btn btn-success btn-checkout-main" id="btn-vender" disabled>
+                                <button class="btn btn-success btn-checkout-main btn-checkout-large" id="btn-vender" disabled>
                                     <span class="btn-icon">💰</span>
                                     VENDER
                                 </button>
-                                <button class="btn btn-secondary btn-checkout-main btn-apartado" id="btn-apartado" disabled>
+                                <button class="btn btn-secondary btn-checkout-main btn-checkout-large btn-apartado" id="btn-apartado" disabled>
                                     <span class="btn-icon">📋</span>
                                     APARTADO
                                 </button>
                             </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Products Grid (moved to right) -->
-                    <div class="pos-products">
-                        <div class="pos-header">
-                            <h2>Productos</h2>
-                            <div class="search-container-wrapper">
-                                <div class="search-container">
-                                    <input type="text" id="product-search" placeholder="Buscar por nombre, código..." class="search-input">
-                                    <span class="search-icon">🔍</span>
-                                </div>
-                                <button class="btn-camera-scan" id="btn-camera-scan" title="Escanear con cámara">
-                                    📷
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <div class="category-tabs" id="category-tabs">
-                            <button class="category-tab active" data-category="all">Todos</button>
-                            <button class="category-tab" data-category="ropa">Ropa</button>
-                            <button class="category-tab" data-category="accesorios">Accesorios</button>
-                            <button class="category-tab" data-category="zapatos">Zapatos</button>
-                            <button class="category-tab" data-category="bolsos">Bolsos</button>
-                        </div>
-                        
-                        <div class="products-grid" id="pos-products-grid">
-                            <!-- Products will be loaded here -->
                         </div>
                     </div>
                 </div>
@@ -181,44 +157,37 @@
 
             <!-- Products Management Page -->
             <section id="page-products" class="page">
-                <div class="page-header">
-                    <h2>Gestión de Productos</h2>
-                    <button class="btn btn-primary" id="btn-add-product">
-                        <span>➕</span> Nuevo Producto
-                    </button>
-                </div>
-                
-                <div class="products-management">
-                    <div class="filters-bar">
-                        <input type="text" id="products-filter" placeholder="Buscar productos..." class="search-input">
-                        <select id="category-filter" class="select-input">
-                            <option value="all">Todas las categorías</option>
-                            <option value="ropa">Ropa</option>
-                            <option value="accesorios">Accesorios</option>
-                            <option value="zapatos">Zapatos</option>
-                            <option value="bolsos">Bolsos</option>
-                        </select>
+                <div class="products-page-container">
+                    <div class="pos-header products-page-header">
+                        <h2>👗 Productos</h2>
+                        <div class="products-header-actions">
+                            <div class="search-container-wrapper">
+                                <div class="search-container">
+                                    <input type="text" id="product-search" placeholder="Buscar por nombre, código..." class="search-input">
+                                    <span class="search-icon">🔍</span>
+                                </div>
+                            </div>
+                            <button class="btn btn-primary" id="btn-add-product">
+                                <span>➕</span> Nuevo Producto
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="products-filters-bar">
+                        <div class="category-tabs" id="category-tabs">
+                            <button class="category-tab active" data-category="all">Todos</button>
+                            <button class="category-tab" data-category="ropa">Ropa</button>
+                            <button class="category-tab" data-category="accesorios">Accesorios</button>
+                            <button class="category-tab" data-category="zapatos">Zapatos</button>
+                            <button class="category-tab" data-category="bolsos">Bolsos</button>
+                        </div>
                         <select id="owner-filter" class="select-input">
                             <option value="all">Todas las dueñas</option>
                         </select>
                     </div>
                     
-                    <div class="products-table-container">
-                        <table class="products-table" id="products-table">
-                            <thead>
-                                <tr>
-                                    <th>Producto</th>
-                                    <th>Categoría</th>
-                                    <th>Precio</th>
-                                    <th>Stock</th>
-                                    <th>Dueña</th>
-                                    <th>Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody id="products-table-body">
-                                <!-- Products will be loaded here -->
-                            </tbody>
-                        </table>
+                    <div class="products-grid products-grid-large" id="pos-products-grid">
+                        <!-- Products will be loaded here -->
                     </div>
                 </div>
             </section>

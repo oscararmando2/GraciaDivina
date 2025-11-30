@@ -53,8 +53,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Initialize UI
         initializeUI();
         
-        // Load initial data
-        await loadProducts();
+        // Load initial data (products will load when navigating to Products page)
         await updateSalesSummary();
         await updateLayawayBadge();
         
@@ -96,7 +95,7 @@ function initializeUI() {
     const sidebarToggle = document.getElementById('sidebar-toggle');
     sidebarToggle.addEventListener('click', toggleSidebar);
     
-    // Product search
+    // Product search (now in Products page)
     document.getElementById('product-search').addEventListener('input', debounce(handleProductSearch, 300));
     
     // UPC Scanner input
@@ -105,7 +104,7 @@ function initializeUI() {
     // Camera scan button
     document.getElementById('btn-camera-scan').addEventListener('click', openCameraScanner);
     
-    // Category tabs
+    // Category tabs (now in Products page)
     document.querySelectorAll('.category-tab').forEach(tab => {
         tab.addEventListener('click', () => handleCategoryFilter(tab.dataset.category));
     });
@@ -121,9 +120,7 @@ function initializeUI() {
     // Product management
     document.getElementById('btn-add-product').addEventListener('click', () => openProductModal());
     document.getElementById('save-product').addEventListener('click', saveProduct);
-    document.getElementById('products-filter').addEventListener('input', debounce(filterProductsTable, 300));
-    document.getElementById('category-filter').addEventListener('change', filterProductsTable);
-    document.getElementById('owner-filter').addEventListener('change', filterProductsTable);
+    document.getElementById('owner-filter').addEventListener('change', handleOwnerFilter);
     
     // Product image handling
     document.getElementById('product-image-url').addEventListener('input', handleImageUrlInput);
@@ -202,7 +199,7 @@ function navigateTo(page) {
     // Load page-specific data
     switch (page) {
         case 'products':
-            loadProductsTable();
+            loadProducts();
             loadOwnerFilter();
             break;
         case 'layaways':
@@ -231,10 +228,15 @@ function toggleSidebar() {
 }
 
 // ========================================
-// PRODUCTS - POS VIEW
+// PRODUCTS - GRID VIEW (Products Page)
 // ========================================
-async function loadProducts(category = 'all', searchQuery = '') {
+async function loadProducts(category = 'all', searchQuery = '', owner = 'all') {
     const grid = document.getElementById('pos-products-grid');
+    
+    if (!grid) {
+        console.warn('Products grid element not found - skipping product load');
+        return;
+    }
     
     let products = await db.getAllProducts();
     
@@ -250,6 +252,11 @@ async function loadProducts(category = 'all', searchQuery = '') {
             p.name.toLowerCase().includes(query) ||
             (p.sku && p.sku.toLowerCase().includes(query))
         );
+    }
+    
+    // Filter by owner
+    if (owner !== 'all') {
+        products = products.filter(p => p.owner === owner);
     }
     
     if (products.length === 0) {
@@ -279,19 +286,44 @@ async function loadProducts(category = 'all', searchQuery = '') {
                 <div class="product-price">${formatCurrency(product.price)}</div>
                 <div class="product-stock ${stockClass}">${stockText}</div>
                 ${product.owner ? `<div class="product-owner">${escapeHtml(product.owner)}</div>` : ''}
+                <div class="product-actions">
+                    <button class="btn-icon edit" data-action="edit" data-product-id="${product.id}" title="Editar">✏️</button>
+                    <button class="btn-icon delete" data-action="delete" data-product-id="${product.id}" title="Eliminar">🗑️</button>
+                </div>
             </div>
         `;
     }).join('');
     
-    // Add click handlers
+    // Add click handlers for adding to cart
     grid.querySelectorAll('.product-card').forEach(card => {
         card.addEventListener('click', () => handleProductClick(parseInt(card.dataset.productId)));
+    });
+    
+    // Add event delegation for product action buttons (edit/delete)
+    grid.querySelectorAll('.product-actions button').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent triggering the card click
+            const productId = parseInt(btn.dataset.productId);
+            if (btn.dataset.action === 'edit') {
+                editProduct(productId);
+            } else if (btn.dataset.action === 'delete') {
+                deleteProduct(productId);
+            }
+        });
     });
 }
 
 function getProductEmoji(category, productId) {
     const emojis = categoryEmojis[category] || ['🛍️'];
     return emojis[productId % emojis.length];
+}
+
+// Handle owner filter in products page
+function handleOwnerFilter() {
+    const owner = document.getElementById('owner-filter').value;
+    const searchQuery = document.getElementById('product-search').value;
+    const activeCategory = document.querySelector('.category-tab.active')?.dataset.category || 'all';
+    loadProducts(activeCategory, searchQuery, owner);
 }
 
 async function handleProductClick(productId) {
@@ -334,8 +366,9 @@ function confirmAddToCart() {
 
 function handleProductSearch(e) {
     const query = e.target.value;
-    const activeCategory = document.querySelector('.category-tab.active').dataset.category;
-    loadProducts(activeCategory, query);
+    const activeCategory = document.querySelector('.category-tab.active')?.dataset.category || 'all';
+    const owner = document.getElementById('owner-filter')?.value || 'all';
+    loadProducts(activeCategory, query, owner);
 }
 
 async function handleUPCScan(e) {
@@ -347,10 +380,11 @@ async function handleUPCScan(e) {
     
     if (!upcCode) return;
     
-    // Search for product by SKU/UPC
+    // Search for product by SKU/UPC or by name
     const products = await db.getAllProducts();
     const product = products.find(p => 
-        p.sku && p.sku.toLowerCase() === upcCode.toLowerCase()
+        (p.sku && p.sku.toLowerCase() === upcCode.toLowerCase()) ||
+        p.name.toLowerCase().includes(upcCode.toLowerCase())
     );
     
     if (product) {
@@ -381,8 +415,9 @@ function handleCategoryFilter(category) {
         tab.classList.toggle('active', tab.dataset.category === category);
     });
     
-    const searchQuery = document.getElementById('product-search').value;
-    loadProducts(category, searchQuery);
+    const searchQuery = document.getElementById('product-search')?.value || '';
+    const owner = document.getElementById('owner-filter')?.value || 'all';
+    loadProducts(category, searchQuery, owner);
 }
 
 // ========================================
@@ -609,80 +644,15 @@ async function completeSale() {
 // ========================================
 // PRODUCTS MANAGEMENT
 // ========================================
-async function loadProductsTable() {
-    const tbody = document.getElementById('products-table-body');
-    const products = await db.getAllProducts();
-    
-    if (products.length === 0) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="6" style="text-align: center; padding: 40px;">
-                    No hay productos registrados
-                </td>
-            </tr>
-        `;
-        return;
-    }
-    
-    tbody.innerHTML = products.map(product => {
-        const emoji = getProductEmoji(product.category, product.id);
-        const stockClass = product.stock <= 0 ? 'out-of-stock' : product.stock <= 5 ? 'low-stock' : 'in-stock';
-        const hasImage = product.image || product.imageUrl;
-        
-        return `
-            <tr data-owner="${product.owner || ''}">
-                <td>
-                    <div class="product-info">
-                        ${hasImage 
-                            ? `<img src="${product.image || product.imageUrl}" alt="" class="product-info-emoji" style="width:40px;height:40px;object-fit:cover;border-radius:8px;" onerror="this.outerHTML='<span class=\\'product-info-emoji\\'>${emoji}</span>'">`
-                            : `<span class="product-info-emoji">${emoji}</span>`
-                        }
-                        <div class="product-info-details">
-                            <h4>${escapeHtml(product.name)}</h4>
-                            <small>${product.sku || 'Sin código'}</small>
-                        </div>
-                    </div>
-                </td>
-                <td><span class="category-badge">${product.category}</span></td>
-                <td><strong>${formatCurrency(product.price)}</strong></td>
-                <td><span class="stock-badge ${stockClass}">${product.stock}</span></td>
-                <td>${product.owner ? `<span class="owner-badge">${escapeHtml(product.owner)}</span>` : '-'}</td>
-                <td>
-                    <div class="action-buttons">
-                        <button class="btn-icon edit" onclick="editProduct(${product.id})" title="Editar">✏️</button>
-                        <button class="btn-icon delete" onclick="deleteProduct(${product.id})" title="Eliminar">🗑️</button>
-                    </div>
-                </td>
-            </tr>
-        `;
-    }).join('');
-}
 
 async function loadOwnerFilter() {
     const select = document.getElementById('owner-filter');
+    if (!select) return;
+    
     const owners = await db.getAllOwners();
     
     select.innerHTML = '<option value="all">Todas las dueñas</option>' +
         owners.map(o => `<option value="${escapeHtml(o.name)}">${escapeHtml(o.name)}</option>`).join('');
-}
-
-function filterProductsTable() {
-    const query = document.getElementById('products-filter').value.toLowerCase();
-    const category = document.getElementById('category-filter').value;
-    const owner = document.getElementById('owner-filter').value;
-    
-    document.querySelectorAll('#products-table-body tr').forEach(row => {
-        const name = row.querySelector('.product-info-details h4')?.textContent.toLowerCase() || '';
-        const sku = row.querySelector('.product-info-details small')?.textContent.toLowerCase() || '';
-        const rowCategory = row.querySelector('.category-badge')?.textContent.toLowerCase() || '';
-        const rowOwner = row.dataset.owner || '';
-        
-        const matchesQuery = name.includes(query) || sku.includes(query);
-        const matchesCategory = category === 'all' || rowCategory === category;
-        const matchesOwner = owner === 'all' || rowOwner === owner;
-        
-        row.style.display = matchesQuery && matchesCategory && matchesOwner ? '' : 'none';
-    });
 }
 
 async function openProductModal(product = null) {
@@ -831,7 +801,6 @@ async function saveProduct() {
         }
         
         closeAllModals();
-        await loadProductsTable();
         await loadProducts();
         
     } catch (error) {
@@ -846,7 +815,6 @@ async function deleteProduct(productId) {
     try {
         await db.deleteProduct(productId);
         showToast('Producto eliminado', 'success');
-        await loadProductsTable();
         await loadProducts();
     } catch (error) {
         console.error('Error deleting product:', error);
@@ -1127,7 +1095,6 @@ async function importData(e) {
         await db.importData(data);
         await loadSettings();
         await loadProducts();
-        await loadProductsTable();
         await loadSalesHistory();
         
         showToast('Datos importados correctamente', 'success');
@@ -1157,7 +1124,6 @@ async function resetData() {
         updateCartUI();
         await loadOwners();
         await loadProducts();
-        await loadProductsTable();
         await loadSalesHistory();
         await updateLayawayBadge();
         
