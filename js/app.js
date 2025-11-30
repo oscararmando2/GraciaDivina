@@ -462,6 +462,7 @@ function addToCart(product, quantity = 1) {
         state.cart.push({
             productId: product.id,
             name: product.name,
+            cost: product.cost || 0,
             price: product.price,
             quantity: quantity,
             owner: product.owner || ''
@@ -611,6 +612,10 @@ async function completeSale() {
     const discount = subtotal * (discountPercent / 100);
     const total = subtotal - discount;
     
+    // Calculate total cost and profit
+    const totalCost = state.cart.reduce((sum, item) => sum + ((item.cost || 0) * item.quantity), 0);
+    const totalProfit = total - totalCost;
+    
     // Validate cash payment
     if (paymentMethod === 'efectivo') {
         const received = parseFloat(document.getElementById('amount-received').value) || 0;
@@ -629,15 +634,20 @@ async function completeSale() {
             items: state.cart.map(item => ({
                 productId: item.productId,
                 name: item.name,
+                cost: item.cost || 0,
                 price: item.price,
                 quantity: item.quantity,
                 subtotal: item.price * item.quantity,
+                costSubtotal: (item.cost || 0) * item.quantity,
+                profit: (item.price - (item.cost || 0)) * item.quantity,
                 owner: item.owner || ''
             })),
             subtotal,
             discountPercent,
             discount,
             total,
+            totalCost,
+            totalProfit,
             paymentMethod,
             amountReceived: amountReceived,
             change: paymentMethod === 'efectivo' ? amountReceived - total : 0
@@ -698,6 +708,9 @@ async function openProductModal(product = null) {
     document.querySelectorAll('input[name="sizes"]').forEach(cb => cb.checked = false);
     document.querySelectorAll('input[name="colors"]').forEach(cb => cb.checked = false);
     
+    // Reset custom size field
+    document.getElementById('product-custom-size').value = '';
+    
     // Reset image preview
     document.getElementById('product-image-preview').classList.add('hidden');
     document.getElementById('product-image-data').value = '';
@@ -706,18 +719,32 @@ async function openProductModal(product = null) {
         document.getElementById('product-id').value = product.id;
         document.getElementById('product-name').value = product.name;
         document.getElementById('product-category').value = product.category;
+        document.getElementById('product-cost').value = product.cost || 0;
         document.getElementById('product-price').value = product.price;
         document.getElementById('product-stock').value = product.stock;
         document.getElementById('product-sku').value = product.sku || '';
         document.getElementById('product-description').value = product.description || '';
         document.getElementById('product-owner').value = product.owner || '';
         
-        // Set sizes checkboxes
+        // Standard sizes that are in checkboxes
+        const standardSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+        
+        // Set sizes checkboxes and collect custom sizes
+        const customSizes = [];
         if (product.sizes && Array.isArray(product.sizes)) {
             product.sizes.forEach(size => {
                 const checkbox = document.querySelector(`input[name="sizes"][value="${size}"]`);
-                if (checkbox) checkbox.checked = true;
+                if (checkbox) {
+                    checkbox.checked = true;
+                } else if (!standardSizes.includes(size)) {
+                    customSizes.push(size);
+                }
             });
+        }
+        
+        // Set custom sizes (join multiple custom sizes with comma)
+        if (customSizes.length > 0) {
+            document.getElementById('product-custom-size').value = customSizes.join(', ');
         }
         
         // Set colors checkboxes
@@ -797,6 +824,13 @@ async function saveProduct() {
     const sizes = Array.from(document.querySelectorAll('input[name="sizes"]:checked'))
         .map(cb => cb.value);
     
+    // Add custom sizes if provided (supports comma-separated values)
+    const customSize = document.getElementById('product-custom-size').value.trim();
+    if (customSize) {
+        const customSizes = customSize.split(',').map(s => s.trim()).filter(s => s);
+        sizes.push(...customSizes);
+    }
+    
     // Get selected colors
     const colors = Array.from(document.querySelectorAll('input[name="colors"]:checked'))
         .map(cb => cb.value);
@@ -808,6 +842,7 @@ async function saveProduct() {
     const product = {
         name: document.getElementById('product-name').value.trim(),
         category: document.getElementById('product-category').value,
+        cost: parseFloat(document.getElementById('product-cost').value) || 0,
         price: parseFloat(document.getElementById('product-price').value),
         stock: parseInt(document.getElementById('product-stock').value) || 0,
         sku: document.getElementById('product-sku').value.trim(),
@@ -874,20 +909,22 @@ async function loadSalesHistory() {
     if (sales.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="6" style="text-align: center; padding: 40px;">
+                <td colspan="7" style="text-align: center; padding: 40px;">
                     No hay ventas en este período
                 </td>
             </tr>
         `;
     } else {
         tbody.innerHTML = sales.map(sale => {
-            const paymentIcons = { efectivo: '💵', tarjeta: '💳', transferencia: '📱' };
+            const paymentIcons = { efectivo: '💵', tarjeta: '💳', transferencia: '📱', apartado: '📋' };
+            const profit = sale.totalProfit || 0;
             return `
                 <tr>
                     <td>${formatDateTime(sale.date)}</td>
                     <td><strong>${sale.ticketNumber}</strong></td>
                     <td>${sale.items.length} producto(s)</td>
                     <td><strong>${formatCurrency(sale.total)}</strong></td>
+                    <td style="color: ${profit >= 0 ? '#10B981' : '#EF4444'}; font-weight: 600;">${formatCurrency(profit)}</td>
                     <td>
                         <span class="payment-badge">
                             ${paymentIcons[sale.paymentMethod] || '💰'}
@@ -918,9 +955,13 @@ async function updateSalesSummary() {
     const todayTotal = db.calculateSalesTotals(todaySales);
     const monthTotal = db.calculateSalesTotals(monthSales);
     
+    // Calculate profit for today
+    const todayProfit = todaySales.reduce((sum, sale) => sum + (sale.totalProfit || 0), 0);
+    
     document.getElementById('today-sales').textContent = formatCurrency(todayTotal);
     document.getElementById('month-sales').textContent = formatCurrency(monthTotal);
     document.getElementById('today-transactions').textContent = todaySales.length;
+    document.getElementById('today-profit').textContent = formatCurrency(todayProfit);
 }
 
 async function viewSaleDetails(saleId) {
@@ -1279,6 +1320,7 @@ async function createLayaway() {
     }
     
     const total = state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const totalCost = state.cart.reduce((sum, item) => sum + ((item.cost || 0) * item.quantity), 0);
     
     const layaway = {
         customerName,
@@ -1286,13 +1328,18 @@ async function createLayaway() {
         items: state.cart.map(item => ({
             productId: item.productId,
             name: item.name,
+            cost: item.cost || 0,
             price: item.price,
             quantity: item.quantity,
             subtotal: item.price * item.quantity,
+            costSubtotal: (item.cost || 0) * item.quantity,
+            profit: (item.price - (item.cost || 0)) * item.quantity,
             owner: item.owner || ''
         })),
         subtotal: total,
         total,
+        totalCost,
+        totalProfit: total - totalCost,
         totalPaid: initialPayment,
         pendingAmount: total - initialPayment,
         payments: [{
@@ -1560,10 +1607,12 @@ async function generateReport() {
     const sales = await db.getSalesByDateRange(startOfDay, endOfDay);
     const layaways = await db.getPendingLayaways();
     
-    // Total sold
+    // Total sold and profit
     const totalSold = sales.reduce((sum, sale) => sum + sale.total, 0);
+    const totalProfit = sales.reduce((sum, sale) => sum + (sale.totalProfit || 0), 0);
     document.getElementById('report-total-sold').textContent = formatCurrency(totalSold);
     document.getElementById('report-transactions').textContent = sales.length;
+    document.getElementById('report-total-profit').textContent = formatCurrency(totalProfit);
     
     // Payment method breakdown
     const paymentBreakdown = {};
@@ -1583,7 +1632,7 @@ async function generateReport() {
         </div>
     `).join('') || '<p style="color: var(--gray-400);">Sin ventas este día</p>';
     
-    // Owner breakdown
+    // Owner breakdown (sales)
     const ownerBreakdown = {};
     sales.forEach(sale => {
         sale.items.forEach(item => {
@@ -1599,6 +1648,26 @@ async function generateReport() {
                 <span>Vendido de ${owner}:</span>
             </span>
             <span class="breakdown-value">${formatCurrency(amount)}</span>
+        </div>
+    `).join('') || '<p style="color: var(--gray-400);">Sin ventas este día</p>';
+    
+    // Owner breakdown (profits)
+    const ownerProfitBreakdown = {};
+    sales.forEach(sale => {
+        sale.items.forEach(item => {
+            const owner = item.owner || 'Sin asignar';
+            const itemProfit = item.profit || ((item.price - (item.cost || 0)) * item.quantity);
+            ownerProfitBreakdown[owner] = (ownerProfitBreakdown[owner] || 0) + itemProfit;
+        });
+    });
+    
+    document.getElementById('owner-profit-breakdown').innerHTML = Object.entries(ownerProfitBreakdown).map(([owner, amount]) => `
+        <div class="breakdown-row">
+            <span class="breakdown-label">
+                <span>💵</span>
+                <span>Ganancia de ${owner}:</span>
+            </span>
+            <span class="breakdown-value" style="color: ${amount >= 0 ? '#10B981' : '#EF4444'};">${formatCurrency(amount)}</span>
         </div>
     `).join('') || '<p style="color: var(--gray-400);">Sin ventas este día</p>';
     

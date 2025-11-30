@@ -427,6 +427,8 @@ class Database {
             discountPercent: layaway.discountPercent || 0,
             discount: layaway.discount || 0,
             total: layaway.total,
+            totalCost: layaway.totalCost || 0,
+            totalProfit: layaway.totalProfit || 0,
             paymentMethod: 'apartado',
             amountReceived: layaway.total,
             change: 0,
@@ -726,31 +728,31 @@ class Database {
         const owners = ['Ketzy', 'Stefanny', 'Chela'];
         const sampleProducts = [
             // Ropa
-            { name: 'Blusa Elegante Floral', category: 'ropa', price: 45.99, stock: 15, sku: 'BLU-001', description: 'Blusa con estampado floral elegante', owner: 'Ketzy', sizes: ['S', 'M', 'L'], colors: ['Rosa', 'Blanco'] },
-            { name: 'Vestido Cocktail Negro', category: 'ropa', price: 89.99, stock: 8, sku: 'VES-001', description: 'Vestido negro para ocasiones especiales', owner: 'Stefanny', sizes: ['S', 'M'], colors: ['Negro'] },
-            { name: 'Falda Midi Plisada', category: 'ropa', price: 55.00, stock: 12, sku: 'FAL-001', description: 'Falda midi plisada elegante', owner: 'Chela', sizes: ['S', 'M', 'L', 'XL'], colors: ['Beige', 'Negro'] },
-            { name: 'Pantalón Palazzo', category: 'ropa', price: 65.00, stock: 10, sku: 'PAN-001', description: 'Pantalón palazzo de talle alto', owner: 'Ketzy', sizes: ['M', 'L'], colors: ['Negro', 'Blanco'] },
-            { name: 'Camisa Satinada', category: 'ropa', price: 52.00, stock: 18, sku: 'CAM-001', description: 'Camisa de satén con cuello', owner: 'Stefanny', sizes: ['S', 'M', 'L'], colors: ['Champagne', 'Rosa'] },
-            { name: 'Top Crop Encaje', category: 'ropa', price: 32.00, stock: 20, sku: 'TOP-001', description: 'Top crop con detalles de encaje', owner: 'Chela', sizes: ['XS', 'S', 'M'], colors: ['Blanco', 'Negro'] },
+            { name: 'Blusa Elegante Floral', category: 'ropa', cost: 25.00, price: 45.99, stock: 15, sku: 'BLU-001', description: 'Blusa con estampado floral elegante', owner: 'Ketzy', sizes: ['S', 'M', 'L'], colors: ['Rosa', 'Blanco'] },
+            { name: 'Vestido Cocktail Negro', category: 'ropa', cost: 50.00, price: 89.99, stock: 8, sku: 'VES-001', description: 'Vestido negro para ocasiones especiales', owner: 'Stefanny', sizes: ['S', 'M'], colors: ['Negro'] },
+            { name: 'Falda Midi Plisada', category: 'ropa', cost: 30.00, price: 55.00, stock: 12, sku: 'FAL-001', description: 'Falda midi plisada elegante', owner: 'Chela', sizes: ['S', 'M', 'L', 'XL'], colors: ['Beige', 'Negro'] },
+            { name: 'Pantalón Palazzo', category: 'ropa', cost: 35.00, price: 65.00, stock: 10, sku: 'PAN-001', description: 'Pantalón palazzo de talle alto', owner: 'Ketzy', sizes: ['M', 'L'], colors: ['Negro', 'Blanco'] },
+            { name: 'Camisa Satinada', category: 'ropa', cost: 28.00, price: 52.00, stock: 18, sku: 'CAM-001', description: 'Camisa de satén con cuello', owner: 'Stefanny', sizes: ['S', 'M', 'L'], colors: ['Champagne', 'Rosa'] },
+            { name: 'Top Crop Encaje', category: 'ropa', cost: 15.00, price: 32.00, stock: 20, sku: 'TOP-001', description: 'Top crop con detalles de encaje', owner: 'Chela', sizes: ['XS', 'S', 'M'], colors: ['Blanco', 'Negro'] },
             
             // Accesorios
-            { name: 'Collar Perlas Clásico', category: 'accesorios', price: 28.00, stock: 25, sku: 'COL-001', description: 'Collar de perlas sintéticas clásico', owner: 'Ketzy', sizes: [], colors: ['Perla', 'Dorado'] },
-            { name: 'Aretes Dorados Largos', category: 'accesorios', price: 18.00, stock: 30, sku: 'ARE-001', description: 'Aretes dorados colgantes', owner: 'Stefanny', sizes: [], colors: ['Dorado'] },
-            { name: 'Pulsera Charm', category: 'accesorios', price: 22.00, stock: 35, sku: 'PUL-001', description: 'Pulsera con dijes intercambiables', owner: 'Chela', sizes: [], colors: ['Plateado', 'Dorado'] },
-            { name: 'Cinturón Cuero Café', category: 'accesorios', price: 35.00, stock: 15, sku: 'CIN-001', description: 'Cinturón de cuero sintético', owner: 'Ketzy', sizes: ['S', 'M', 'L'], colors: ['Café', 'Negro'] },
-            { name: 'Pañuelo Seda Estampado', category: 'accesorios', price: 25.00, stock: 20, sku: 'PAÑ-001', description: 'Pañuelo de seda con estampado', owner: 'Stefanny', sizes: [], colors: ['Multicolor'] },
+            { name: 'Collar Perlas Clásico', category: 'accesorios', cost: 12.00, price: 28.00, stock: 25, sku: 'COL-001', description: 'Collar de perlas sintéticas clásico', owner: 'Ketzy', sizes: [], colors: ['Perla', 'Dorado'] },
+            { name: 'Aretes Dorados Largos', category: 'accesorios', cost: 8.00, price: 18.00, stock: 30, sku: 'ARE-001', description: 'Aretes dorados colgantes', owner: 'Stefanny', sizes: [], colors: ['Dorado'] },
+            { name: 'Pulsera Charm', category: 'accesorios', cost: 10.00, price: 22.00, stock: 35, sku: 'PUL-001', description: 'Pulsera con dijes intercambiables', owner: 'Chela', sizes: [], colors: ['Plateado', 'Dorado'] },
+            { name: 'Cinturón Cuero Café', category: 'accesorios', cost: 18.00, price: 35.00, stock: 15, sku: 'CIN-001', description: 'Cinturón de cuero sintético', owner: 'Ketzy', sizes: ['S', 'M', 'L'], colors: ['Café', 'Negro'] },
+            { name: 'Pañuelo Seda Estampado', category: 'accesorios', cost: 12.00, price: 25.00, stock: 20, sku: 'PAÑ-001', description: 'Pañuelo de seda con estampado', owner: 'Stefanny', sizes: [], colors: ['Multicolor'] },
             
             // Zapatos
-            { name: 'Tacones Nude Classic', category: 'zapatos', price: 75.00, stock: 10, sku: 'TAC-001', description: 'Tacones nude de 8cm', owner: 'Chela', sizes: ['35', '36', '37', '38'], colors: ['Nude'] },
-            { name: 'Sandalias Plataforma', category: 'zapatos', price: 68.00, stock: 12, sku: 'SAN-001', description: 'Sandalias con plataforma', owner: 'Ketzy', sizes: ['36', '37', '38', '39'], colors: ['Negro', 'Café'] },
-            { name: 'Botines Negros', category: 'zapatos', price: 85.00, stock: 8, sku: 'BOT-001', description: 'Botines negros con tacón medio', owner: 'Stefanny', sizes: ['36', '37', '38'], colors: ['Negro'] },
-            { name: 'Flats Bailarina', category: 'zapatos', price: 42.00, stock: 15, sku: 'FLA-001', description: 'Flats estilo bailarina', owner: 'Chela', sizes: ['35', '36', '37', '38', '39'], colors: ['Rosa', 'Negro', 'Nude'] },
+            { name: 'Tacones Nude Classic', category: 'zapatos', cost: 40.00, price: 75.00, stock: 10, sku: 'TAC-001', description: 'Tacones nude de 8cm', owner: 'Chela', sizes: ['35', '36', '37', '38'], colors: ['Nude'] },
+            { name: 'Sandalias Plataforma', category: 'zapatos', cost: 35.00, price: 68.00, stock: 12, sku: 'SAN-001', description: 'Sandalias con plataforma', owner: 'Ketzy', sizes: ['36', '37', '38', '39'], colors: ['Negro', 'Café'] },
+            { name: 'Botines Negros', category: 'zapatos', cost: 45.00, price: 85.00, stock: 8, sku: 'BOT-001', description: 'Botines negros con tacón medio', owner: 'Stefanny', sizes: ['36', '37', '38'], colors: ['Negro'] },
+            { name: 'Flats Bailarina', category: 'zapatos', cost: 22.00, price: 42.00, stock: 15, sku: 'FLA-001', description: 'Flats estilo bailarina', owner: 'Chela', sizes: ['35', '36', '37', '38', '39'], colors: ['Rosa', 'Negro', 'Nude'] },
             
             // Bolsos
-            { name: 'Bolso Tote Grande', category: 'bolsos', price: 95.00, stock: 8, sku: 'BOL-001', description: 'Bolso tote espacioso', owner: 'Ketzy', sizes: [], colors: ['Café', 'Negro'] },
-            { name: 'Clutch Fiesta Dorado', category: 'bolsos', price: 45.00, stock: 12, sku: 'CLU-001', description: 'Clutch para eventos', owner: 'Stefanny', sizes: [], colors: ['Dorado', 'Plateado'] },
-            { name: 'Bolso Crossbody', category: 'bolsos', price: 55.00, stock: 15, sku: 'CRO-001', description: 'Bolso cruzado casual', owner: 'Chela', sizes: [], colors: ['Rosa', 'Beige'] },
-            { name: 'Mochila Mini', category: 'bolsos', price: 48.00, stock: 10, sku: 'MOC-001', description: 'Mini mochila de piel sintética', owner: 'Ketzy', sizes: [], colors: ['Negro', 'Blanco'] }
+            { name: 'Bolso Tote Grande', category: 'bolsos', cost: 50.00, price: 95.00, stock: 8, sku: 'BOL-001', description: 'Bolso tote espacioso', owner: 'Ketzy', sizes: [], colors: ['Café', 'Negro'] },
+            { name: 'Clutch Fiesta Dorado', category: 'bolsos', cost: 22.00, price: 45.00, stock: 12, sku: 'CLU-001', description: 'Clutch para eventos', owner: 'Stefanny', sizes: [], colors: ['Dorado', 'Plateado'] },
+            { name: 'Bolso Crossbody', category: 'bolsos', cost: 28.00, price: 55.00, stock: 15, sku: 'CRO-001', description: 'Bolso cruzado casual', owner: 'Chela', sizes: [], colors: ['Rosa', 'Beige'] },
+            { name: 'Mochila Mini', category: 'bolsos', cost: 25.00, price: 48.00, stock: 10, sku: 'MOC-001', description: 'Mini mochila de piel sintética', owner: 'Ketzy', sizes: [], colors: ['Negro', 'Blanco'] }
         ];
 
         const existingProducts = await this.getAllProducts();
