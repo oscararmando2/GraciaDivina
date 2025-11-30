@@ -939,7 +939,7 @@ async function viewSaleDetails(saleId) {
                 ` : ''}
             </div>
             <div class="ticket-footer">
-                <p>¡Gracias por elegir Gracia Divina!</p>
+                <p>${state.settings.ticketFooter || '¡Gracias por elegir Gracia Divina!'}</p>
             </div>
         </div>
     `;
@@ -997,7 +997,7 @@ function printTicket() {
                 </div>
             </div>
             <div class="ticket-footer">
-                <p>¡Gracias por elegir Gracia Divina!</p>
+                <p>${state.settings.ticketFooter || '¡Gracias por elegir Gracia Divina!'}</p>
             </div>
         </body>
         </html>
@@ -1740,6 +1740,14 @@ function updateOnlineStatus() {
     }
 }
 
+// WhatsApp helper function
+function openWhatsApp(event) {
+    event.preventDefault();
+    const phone = state.settings.businessPhone ? state.settings.businessPhone.replace(/\D/g, '') : '';
+    const url = phone ? `https://wa.me/${phone}` : 'https://wa.me/';
+    window.open(url, '_blank');
+}
+
 // Make functions available globally for inline event handlers
 window.updateCartItemQuantity = updateCartItemQuantity;
 window.removeFromCart = removeFromCart;
@@ -1748,3 +1756,4 @@ window.deleteProduct = deleteProduct;
 window.viewSaleDetails = viewSaleDetails;
 window.viewLayawayDetails = viewLayawayDetails;
 window.deleteOwner = deleteOwner;
+window.openWhatsApp = openWhatsApp;

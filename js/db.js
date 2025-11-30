@@ -695,8 +695,14 @@ class Database {
                 request.onsuccess = () => resolve(true);
                 request.onerror = () => reject(request.error);
             } catch (error) {
-                // Store might not exist yet
-                resolve(true);
+                // Store might not exist during database upgrade - this is expected
+                if (error.name === 'NotFoundError' || error.message.includes('not found')) {
+                    console.log(`Store "${storeName}" not found, skipping clear`);
+                    resolve(true);
+                } else {
+                    console.error(`Error clearing store "${storeName}":`, error);
+                    reject(error);
+                }
             }
         });
     }
