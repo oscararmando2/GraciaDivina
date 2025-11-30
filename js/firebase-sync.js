@@ -12,14 +12,17 @@
  * - Compatibilidad con Windows 7 y navegadores antiguos
  */
 
-// Configuración de Firebase (reemplazar con credenciales reales)
+// Configuración de Firebase
+// IMPORTANTE: Reemplaza estos valores placeholder con tus credenciales reales de Firebase
+// Puedes encontrarlas en: Firebase Console > Configuración del proyecto > General
+// NOTA: En producción, considera usar variables de entorno o un archivo de configuración seguro
 const FIREBASE_CONFIG = {
-    apiKey: "AIzaSyBxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    apiKey: "TU_API_KEY_AQUI",
     authDomain: "gracia-divina-c70c6.firebaseapp.com",
     projectId: "gracia-divina-c70c6",
     storageBucket: "gracia-divina-c70c6.firebasestorage.app",
-    messagingSenderId: "000000000000",
-    appId: "1:000000000000:web:xxxxxxxxxxxxxxxxxxxxxxxx",
+    messagingSenderId: "TU_MESSAGING_SENDER_ID",
+    appId: "TU_APP_ID",
     databaseURL: "https://gracia-divina-c70c6-default-rtdb.firebaseio.com/"
 };
 
@@ -207,7 +210,13 @@ class FirebaseSync {
                 case 'owners':
                     return await db.getAllOwners();
                 case 'settings':
-                    return await db.getAllSettings();
+                    // Settings retorna un objeto, convertir a array para sincronización
+                    const settingsObj = await db.getAllSettings();
+                    return Object.entries(settingsObj).map(([key, value]) => ({
+                        key,
+                        value,
+                        id: key // Usar key como ID para comparación
+                    }));
                 default:
                     return [];
             }
@@ -246,16 +255,24 @@ class FirebaseSync {
      * Estrategia: última modificación gana
      */
     async mergeData(collectionName, localData, remoteData) {
-        // Crear mapa de datos remotos por ID
+        // Manejo especial para settings (usa key en lugar de id)
+        const isSettings = collectionName === 'settings';
+        const getItemKey = (item) => {
+            if (isSettings) return item.key;
+            return (item.id || item._firestoreId)?.toString();
+        };
+
+        // Crear mapa de datos remotos por ID/key
         const remoteMap = new Map();
         remoteData.forEach(item => {
-            const key = item.id || item._firestoreId;
-            if (key) remoteMap.set(key.toString(), item);
+            const key = getItemKey(item);
+            if (key) remoteMap.set(key, item);
         });
 
         // Procesar datos locales - subir a Firestore si es más reciente
         for (const localItem of localData) {
-            const remoteItem = remoteMap.get(localItem.id?.toString());
+            const localKey = getItemKey(localItem);
+            const remoteItem = remoteMap.get(localKey);
 
             if (!remoteItem) {
                 // Nuevo registro local, subir a Firestore
@@ -274,10 +291,8 @@ class FirebaseSync {
 
         // Procesar datos remotos - descargar a IndexedDB si es más reciente
         for (const remoteItem of remoteData) {
-            const localItem = localData.find(l => 
-                l.id?.toString() === remoteItem.id?.toString() ||
-                l.id?.toString() === remoteItem._firestoreId
-            );
+            const remoteKey = getItemKey(remoteItem);
+            const localItem = localData.find(l => getItemKey(l) === remoteKey);
 
             if (!localItem) {
                 // Nuevo registro remoto, guardar localmente
