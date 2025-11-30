@@ -29,6 +29,13 @@ const FIREBASE_CONFIG = {
 // Constantes de tiempo (en milisegundos)
 const FIREBASE_INIT_DELAY_MS = 2000;       // Tiempo de espera antes de inicializar Firebase
 const STATUS_UPDATE_INTERVAL_MS = 5000;    // Intervalo para actualizar el indicador de estado
+const AUTH_LISTENER_SETUP_DELAY_MS = 1000; // Tiempo de espera para que el auth listener se configure
+
+// Credenciales predeterminadas para inicio de sesión automático
+const DEFAULT_CREDENTIALS = {
+    email: 'ketzy@gmail.com',
+    password: 'Ketzy123'
+};
 
 // Mapeo de colecciones IndexedDB a nodos de Realtime Database
 // IndexedDB usa nombres en inglés, Realtime Database usa nombres según las reglas del usuario
@@ -148,6 +155,27 @@ class FirebaseSync {
         } catch (error) {
             console.error('Error al iniciar sesión:', error);
             this.showSyncNotification('Error al iniciar sesión: ' + error.message, 'error');
+            return false;
+        }
+    }
+
+    /**
+     * Intenta iniciar sesión automáticamente con las credenciales predeterminadas
+     */
+    async autoSignIn() {
+        if (!syncState.auth || syncState.isAuthenticated) {
+            return false;
+        }
+
+        console.log('🔐 Intentando inicio de sesión automático...');
+        try {
+            const success = await this.signIn(DEFAULT_CREDENTIALS.email, DEFAULT_CREDENTIALS.password);
+            if (success) {
+                console.log('✅ Inicio de sesión automático exitoso');
+            }
+            return success;
+        } catch (error) {
+            console.error('Error en inicio de sesión automático:', error);
             return false;
         }
     }
@@ -930,11 +958,11 @@ function showLoginModal() {
                 </p>
                 <div class="form-group">
                     <label for="firebase-email">Correo electrónico</label>
-                    <input type="email" id="firebase-email" class="form-input" placeholder="correo@ejemplo.com">
+                    <input type="email" id="firebase-email" class="form-input" placeholder="correo@ejemplo.com" value="${DEFAULT_CREDENTIALS.email}">
                 </div>
                 <div class="form-group">
                     <label for="firebase-password">Contraseña</label>
-                    <input type="password" id="firebase-password" class="form-input" placeholder="Tu contraseña">
+                    <input type="password" id="firebase-password" class="form-input" placeholder="Tu contraseña" value="${DEFAULT_CREDENTIALS.password}">
                 </div>
                 <div id="login-error" style="color: var(--danger); font-size: 14px; margin-top: 10px; display: none;"></div>
             </div>
@@ -1004,8 +1032,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Inicializar Firebase después de un pequeño delay
     // para asegurar que la base de datos local (IndexedDB) esté lista
     setTimeout(async () => {
-        await firebaseSync.init();
+        const initialized = await firebaseSync.init();
         updateSyncStatusIndicator();
+        
+        // Si Firebase se inicializó correctamente y el usuario no está autenticado,
+        // intentar inicio de sesión automático
+        if (initialized && !firebaseSync.isUserAuthenticated()) {
+            // Esperar un momento para que el auth listener se configure
+            setTimeout(async () => {
+                if (!firebaseSync.isUserAuthenticated()) {
+                    await firebaseSync.autoSignIn();
+                    updateSyncStatusIndicator();
+                }
+            }, AUTH_LISTENER_SETUP_DELAY_MS);
+        }
     }, FIREBASE_INIT_DELAY_MS);
 });
 
