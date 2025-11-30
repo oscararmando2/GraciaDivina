@@ -362,7 +362,7 @@ h4 { font-size: 1.125rem; }
    ======================================== */
 .pos-container {
     display: grid;
-    grid-template-columns: 1fr 380px;
+    grid-template-columns: 380px 1fr;
     gap: var(--spacing-xl);
     height: calc(100vh - 2 * var(--spacing-xl));
 }
@@ -2179,34 +2179,6 @@ h4 { font-size: 1.125rem; }
     font-size: 0.875rem;
 }
 
-/* WhatsApp Floating Button */
-.whatsapp-float {
-    position: fixed;
-    bottom: var(--spacing-xl);
-    right: var(--spacing-xl);
-    width: 60px;
-    height: 60px;
-    background: #25D366;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--white);
-    box-shadow: var(--shadow-lg);
-    z-index: 999;
-    transition: var(--transition-fast);
-}
-
-.whatsapp-float:hover {
-    transform: scale(1.1);
-    box-shadow: 0 10px 30px rgba(37, 211, 102, 0.4);
-}
-
-.whatsapp-icon {
-    width: 32px;
-    height: 32px;
-}
-
 /* Products Table Owner Column */
 .owner-badge {
     display: inline-block;
@@ -2263,18 +2235,6 @@ h4 { font-size: 1.125rem; }
     
     .layaway-amounts {
         text-align: center;
-    }
-    
-    .whatsapp-float {
-        bottom: var(--spacing-md);
-        right: var(--spacing-md);
-        width: 50px;
-        height: 50px;
-    }
-    
-    .whatsapp-icon {
-        width: 26px;
-        height: 26px;
     }
 }
 
