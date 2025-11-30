@@ -2857,6 +2857,34 @@ h4 { font-size: 1.125rem; }
         display: none;
     }
     
+    /* ========================================
+       Mobile-only: Hide certain nav items and pages
+       Only show: Ventas, Reportes, and Apartados
+       Hide: Punto de Venta, Productos, Configuración
+       ======================================== */
+    
+    /* Hide navigation items for POS, Products, and Settings on mobile */
+    .nav-item[data-page="pos"],
+    .nav-item[data-page="products"],
+    .nav-item[data-page="settings"] {
+        display: none !important;
+    }
+    
+    /* Hide corresponding pages on mobile */
+    #page-pos,
+    #page-products,
+    #page-settings {
+        display: none !important;
+    }
+    
+    /* Ensure visible pages (Ventas, Reportes, Apartados) are properly styled */
+    #page-sales.active,
+    #page-reports.active,
+    #page-layaways.active {
+        display: flex !important;
+        flex-direction: column;
+    }
+    
     /* Improve POS page on mobile */
     #page-pos {
         padding: 0;
