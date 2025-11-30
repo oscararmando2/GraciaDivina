@@ -13,27 +13,17 @@
  */
 
 // ============================================================================
-// CONFIGURACIÓN DE FIREBASE - DEBES COMPLETAR ESTOS VALORES
-// ============================================================================
-// IMPORTANTE: Reemplaza los valores placeholder con tus credenciales reales de Firebase.
-// 
-// Para obtener las credenciales:
-// 1. Ve a Firebase Console: https://console.firebase.google.com/
-// 2. Selecciona tu proyecto "gracia-divina-c70c6"
-// 3. Ve a Configuración del proyecto (⚙️) > General
-// 4. En "Tus apps", busca la configuración de la app web
-// 5. Copia los valores de apiKey, messagingSenderId y appId
-//
-// NOTA: Sin estas credenciales reales, la sincronización NO funcionará
+// CONFIGURACIÓN DE FIREBASE
 // ============================================================================
 const FIREBASE_CONFIG = {
-    apiKey: "TU_API_KEY_AQUI",           // Reemplaza con tu apiKey real
+    apiKey: "AIzaSyBagLJ4kGy9LepoGqUJ7mirAhC2uflaoAs",
     authDomain: "gracia-divina-c70c6.firebaseapp.com",
+    databaseURL: "https://gracia-divina-c70c6-default-rtdb.firebaseio.com",
     projectId: "gracia-divina-c70c6",
     storageBucket: "gracia-divina-c70c6.firebasestorage.app",
-    messagingSenderId: "TU_MESSAGING_SENDER_ID",  // Reemplaza con tu messagingSenderId real
-    appId: "TU_APP_ID",                           // Reemplaza con tu appId real
-    databaseURL: "https://gracia-divina-c70c6-default-rtdb.firebaseio.com"
+    messagingSenderId: "395608568512",
+    appId: "1:395608568512:web:d8ec5e698d0905082a7325",
+    measurementId: "G-GDGLYHRKPJ"
 };
 
 // Constantes de tiempo (en milisegundos)
