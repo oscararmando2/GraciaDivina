@@ -83,6 +83,9 @@
 html {
     font-size: 16px;
     scroll-behavior: smooth;
+    /* Altura dinámica del viewport - compatible desde Windows 7 hasta Windows 11 */
+    height: 100%;
+    height: -webkit-fill-available;
 }
 
 body {
@@ -91,9 +94,18 @@ body {
     line-height: 1.6;
     color: var(--gray-800);
     background-color: var(--cream);
+    /* Usar altura dinámica del viewport (dvh) con fallback para navegadores antiguos */
     min-height: 100vh;
+    min-height: 100dvh;
+    min-height: -webkit-fill-available;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    /* Evitar scroll en body - el scroll será interno en los contenedores */
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+    top: 0;
+    left: 0;
 }
 
 /* Typography */
@@ -193,7 +205,11 @@ h4 { font-size: 1.125rem; }
    ======================================== */
 .app-container {
     display: flex;
-    min-height: 100vh;
+    /* Altura dinámica del viewport con fallbacks para Windows 7 */
+    height: 100vh;
+    height: 100dvh;
+    height: -webkit-fill-available;
+    overflow: hidden;
 }
 
 /* ========================================
@@ -206,7 +222,10 @@ h4 { font-size: 1.125rem; }
     display: flex;
     flex-direction: column;
     position: fixed;
+    /* Altura dinámica compatible con Windows 7 */
     height: 100vh;
+    height: 100dvh;
+    height: -webkit-fill-available;
     z-index: 100;
     transition: transform var(--transition-normal), width var(--transition-normal);
 }
@@ -329,7 +348,12 @@ h4 { font-size: 1.125rem; }
 .main-content {
     flex: 1;
     margin-left: var(--sidebar-width);
-    min-height: 100vh;
+    /* Altura completa con scroll interno */
+    height: 100vh;
+    height: 100dvh;
+    height: -webkit-fill-available;
+    overflow-y: auto;
+    overflow-x: hidden;
     background: var(--cream);
 }
 
@@ -337,10 +361,13 @@ h4 { font-size: 1.125rem; }
     display: none;
     padding: var(--spacing-xl);
     animation: fadeIn 0.3s ease;
+    /* Altura completa para páginas */
+    min-height: 100%;
 }
 
 .page.active {
-    display: block;
+    display: flex;
+    flex-direction: column;
 }
 
 @keyframes fadeIn {
@@ -2277,11 +2304,20 @@ h4 { font-size: 1.125rem; }
    ======================================== */
 #page-pos {
     padding: 0;
+    /* Asegurar que la página POS use toda la altura disponible */
+    height: 100%;
+    display: flex;
+    flex-direction: column;
 }
 
 .pos-container-full {
     display: flex;
+    flex-direction: column;
+    /* Altura dinámica del viewport - compatible con Windows 7 */
+    height: 100vh;
     height: 100dvh;
+    height: -webkit-fill-available;
+    overflow: hidden;
 }
 
 .pos-cart-full {
@@ -2291,6 +2327,8 @@ h4 { font-size: 1.125rem; }
     background: transparent;
     border-radius: 0;
     box-shadow: none;
+    /* Altura completa */
+    height: 100%;
     overflow: hidden;
 }
 
@@ -2351,7 +2389,9 @@ h4 { font-size: 1.125rem; }
     flex: 1;
     overflow-y: auto;
     padding: var(--spacing-lg) var(--spacing-xl);
-    min-height: 250px;
+    min-height: 0; /* Importante para que flex-shrink funcione */
+    /* Scroll suave para Windows 7 */
+    -webkit-overflow-scrolling: touch;
 }
 
 .cart-empty-large {
@@ -2384,6 +2424,8 @@ h4 { font-size: 1.125rem; }
     padding: var(--spacing-xl);
     background: transparent;
     border-top: 1px solid var(--gray-200);
+    /* Asegurar que no se encoja */
+    flex-shrink: 0;
 }
 
 .cart-summary-large .summary-row {
@@ -2399,8 +2441,16 @@ h4 { font-size: 1.125rem; }
 
 .cart-actions-large {
     padding: var(--spacing-xl);
-    background: transparent;
+    background: var(--white);
     border-top: 1px solid var(--gray-200);
+    /* CRÍTICO: Asegurar que los botones VENDER y APARTADO siempre sean visibles */
+    flex-shrink: 0;
+    /* Posición sticky para que siempre estén al fondo visible */
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+    /* Sombra para separar visualmente de los items */
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .cart-actions-large .cart-actions-row {
@@ -3364,4 +3414,168 @@ h4 { font-size: 1.125rem; }
     .sales-table tbody {
         -webkit-overflow-scrolling: touch;
     }
+}
+
+/* ========================================
+   Windows 7 y Navegadores Antiguos - Fixes
+   ======================================== */
+
+/* 
+ * Estos estilos aseguran compatibilidad con Windows 7 (Chrome 49+, Firefox ESR)
+ * y resuelven el problema de la barra de tareas tapando contenido
+ */
+
+/* Fallback para navegadores que no soportan dvh */
+@supports not (height: 100dvh) {
+    html, body {
+        height: 100%;
+    }
+    
+    .app-container {
+        height: 100%;
+    }
+    
+    .main-content {
+        height: 100%;
+    }
+    
+    .pos-container-full {
+        height: 100%;
+    }
+}
+
+/* Asegurar que los botones de venta siempre sean visibles */
+.cart-actions-large {
+    /* Usar calc como fallback si sticky no funciona */
+    min-height: 80px;
+}
+
+/* Estilo específico para el contenedor de botones de checkout */
+.cart-actions-row {
+    display: flex;
+    gap: var(--spacing-lg);
+    width: 100%;
+}
+
+/* Botones VENDER y APARTADO más prominentes */
+.btn-checkout-large {
+    padding: var(--spacing-lg) var(--spacing-xl);
+    font-size: 1.25rem;
+    font-weight: 700;
+    min-height: 60px;
+    /* Sombra para destacar */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn-checkout-large:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+/* Fix para Windows 7: asegurar que el scroll funcione correctamente */
+.cart-items-large {
+    /* Scroll suave compatible con navegadores antiguos */
+    overflow-y: auto;
+    overflow-x: hidden;
+    /* Permitir que el contenedor se encoja */
+    min-height: 100px;
+    max-height: none;
+}
+
+/* Fix para que el área de productos tenga scroll interno */
+.products-grid-large {
+    /* Scroll suave */
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* ========================================
+   PWA Mode - Modo Ventana Completa
+   ======================================== */
+
+/* Cuando la app está instalada como PWA */
+@media all and (display-mode: standalone) {
+    html, body {
+        /* Ocupar toda la pantalla disponible */
+        height: 100%;
+        overflow: hidden;
+    }
+    
+    /* Ocultar elementos de interfaz de navegador si los hay */
+    .browser-ui-hint {
+        display: none;
+    }
+}
+
+/* Para Windows con barra de tareas inferior */
+@media screen and (max-height: 700px) {
+    /* Reducir padding en pantallas pequeñas para mostrar más contenido */
+    .cart-summary-large {
+        padding: var(--spacing-md);
+    }
+    
+    .cart-actions-large {
+        padding: var(--spacing-md);
+    }
+    
+    .btn-checkout-large {
+        padding: var(--spacing-md);
+        font-size: 1rem;
+        min-height: 50px;
+    }
+    
+    .cart-summary-large .summary-row {
+        font-size: 0.9375rem;
+        margin-bottom: var(--spacing-xs);
+    }
+    
+    .cart-summary-large .summary-row.total {
+        font-size: 1.25rem;
+    }
+}
+
+/* ========================================
+   Indicador de Estado de Sincronización
+   ======================================== */
+.sync-status-indicator {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    font-size: 0.75rem;
+    color: var(--gray-500);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    background: var(--gray-50);
+    border-radius: var(--radius-full);
+    margin-left: var(--spacing-sm);
+}
+
+.sync-status-indicator.syncing {
+    color: var(--info);
+    background: rgba(59, 130, 246, 0.1);
+}
+
+.sync-status-indicator.synced {
+    color: var(--success);
+    background: rgba(16, 185, 129, 0.1);
+}
+
+.sync-status-indicator.offline {
+    color: var(--warning);
+    background: rgba(245, 158, 11, 0.1);
+}
+
+.sync-status-indicator.error {
+    color: var(--danger);
+    background: rgba(239, 68, 68, 0.1);
+}
+
+/* Animación de sincronización */
+@keyframes syncRotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.sync-status-indicator.syncing .sync-icon {
+    animation: syncRotate 1s linear infinite;
 }

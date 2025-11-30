@@ -2,12 +2,24 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- Viewport optimizado para Windows 7 y móviles - evita zoom no deseado -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="description" content="Gracia Divina - Sistema Punto de Venta para boutique de ropa y accesorios">
     <meta name="theme-color" content="#8B5CF6">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Gracia Divina">
+    <!-- Compatibilidad con IE/Edge antiguos -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <!-- Prevenir caché agresivo en Windows 7 -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <!-- PWA: Modo standalone (ventana sin pestañas) -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="Gracia Divina">
+    <meta name="msapplication-TileColor" content="#8B5CF6">
+    <meta name="msapplication-config" content="none">
     
     <title>Gracia Divina - POS</title>
     
@@ -824,12 +836,21 @@
     <!-- Toast Notifications -->
     <div id="toast-container" class="toast-container"></div>
 
+    <!-- Firebase SDK (opcional - solo para sincronización en la nube) -->
+    <!-- 
+    Para habilitar sincronización con Firebase, descomenta estas líneas:
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    -->
+
     <!-- Scripts -->
     <script src="js/db.js"></script>
+    <script src="js/firebase-sync.js"></script>
     <script src="js/app.js"></script>
     
-    <!-- Service Worker Registration -->
+    <!-- Service Worker Registration y Ajustes para Windows 7 -->
     <script>
+        // Registrar Service Worker para funcionalidad PWA
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/sw.js')
@@ -841,6 +862,47 @@
                     });
             });
         }
+
+        // Fix para altura de viewport en Windows 7 y navegadores antiguos
+        // Esto asegura que la barra de tareas no tape los botones
+        function setViewportHeight() {
+            // Calcular la altura real del viewport visible
+            const vh = window.innerHeight * 0.01;
+            document.documentElement.style.setProperty('--vh', `${vh}px`);
+            
+            // Actualizar altura del contenedor principal si existe
+            const appContainer = document.querySelector('.app-container');
+            if (appContainer) {
+                appContainer.style.height = `${window.innerHeight}px`;
+            }
+            
+            const posContainer = document.querySelector('.pos-container-full');
+            if (posContainer) {
+                posContainer.style.height = `${window.innerHeight}px`;
+            }
+        }
+
+        // Ejecutar al cargar y cuando cambie el tamaño de ventana
+        setViewportHeight();
+        window.addEventListener('resize', setViewportHeight);
+        window.addEventListener('orientationchange', function() {
+            // Delay para que el navegador actualice las dimensiones
+            setTimeout(setViewportHeight, 100);
+        });
+
+        // Detectar si estamos en modo PWA standalone
+        if (window.matchMedia('(display-mode: standalone)').matches || 
+            window.navigator.standalone === true) {
+            document.documentElement.classList.add('pwa-mode');
+            console.log('Ejecutando en modo PWA standalone');
+        }
+
+        // Prevenir scroll del body en iOS y Windows
+        document.body.addEventListener('touchmove', function(e) {
+            if (e.target === document.body) {
+                e.preventDefault();
+            }
+        }, { passive: false });
     </script>
 </body>
 </html>
