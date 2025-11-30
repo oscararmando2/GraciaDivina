@@ -2857,27 +2857,32 @@ h4 { font-size: 1.125rem; }
         display: none;
     }
     
-    /* Improve POS page on mobile */
-    #page-pos {
-        padding: 0;
+    /* ========================================
+       Mobile-only: Hide certain nav items and pages
+       Only show: Ventas, Reportes, and Apartados
+       Hide: Punto de Venta, Productos, Configuración
+       ======================================== */
+    
+    /* Hide navigation items for POS, Products, and Settings on mobile */
+    .nav-item[data-page="pos"],
+    .nav-item[data-page="products"],
+    .nav-item[data-page="settings"] {
+        display: none !important;
     }
     
-    .pos-container-full {
-        height: calc(100dvh - 56px);
+    /* Hide corresponding pages on mobile */
+    #page-pos,
+    #page-products,
+    #page-settings {
+        display: none !important;
     }
     
-    .pos-cart-full .cart-header {
-        padding: var(--spacing-md);
-        background: var(--white);
-    }
-    
-    .pos-cart-full .cart-header h3 {
-        font-size: 1rem;
-    }
-    
-    /* Hide the internal mobile menu container in POS since we have the main header now */
-    .cart-header-actions .mobile-menu-container {
-        display: none;
+    /* Ensure visible pages (Ventas, Reportes, Apartados) are properly styled */
+    #page-sales.active,
+    #page-reports.active,
+    #page-layaways.active {
+        display: flex !important;
+        flex-direction: column;
     }
     
     /* ========================================

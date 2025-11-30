@@ -58,6 +58,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Initialize UI
         initializeUI();
         
+        // On mobile, navigate to a visible page (sales) since POS is hidden
+        if (window.innerWidth <= MOBILE_BREAKPOINT) {
+            navigateTo('sales');
+        }
+        
         // Load initial data (products will load when navigating to Products page)
         await updateSalesSummary();
         await updateLayawayBadge();
@@ -77,6 +82,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateOnlineStatus();
         window.addEventListener('online', updateOnlineStatus);
         window.addEventListener('offline', updateOnlineStatus);
+        
+        // Handle viewport resize to switch pages when going from desktop to mobile
+        window.addEventListener('resize', handleViewportResize);
         
         // Set report date to today
         document.getElementById('report-date').value = formatDateForInput(new Date());
@@ -302,6 +310,18 @@ function closeSidebar() {
     }
     
     document.body.style.overflow = '';
+}
+
+// Pages that are hidden on mobile (only Ventas, Reportes, Apartados are visible)
+const MOBILE_HIDDEN_PAGES = ['pos', 'products', 'settings'];
+
+function handleViewportResize() {
+    const isMobile = window.innerWidth <= MOBILE_BREAKPOINT;
+    
+    // If switching to mobile and current page is hidden on mobile, navigate to sales
+    if (isMobile && MOBILE_HIDDEN_PAGES.includes(state.currentPage)) {
+        navigateTo('sales');
+    }
 }
 
 // ========================================
