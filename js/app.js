@@ -95,6 +95,36 @@ function initializeUI() {
     const sidebarToggle = document.getElementById('sidebar-toggle');
     sidebarToggle.addEventListener('click', toggleSidebar);
     
+    // Mobile hamburger menu for POS page
+    const mobileHamburgerBtn = document.getElementById('mobile-hamburger-btn');
+    const mobileDropdownMenu = document.getElementById('mobile-dropdown-menu');
+    
+    if (mobileHamburgerBtn && mobileDropdownMenu) {
+        mobileHamburgerBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            mobileHamburgerBtn.classList.toggle('active');
+            mobileDropdownMenu.classList.toggle('active');
+        });
+        
+        // Handle mobile menu item clicks
+        document.querySelectorAll('.mobile-menu-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const page = item.dataset.page;
+                navigateTo(page);
+                mobileHamburgerBtn.classList.remove('active');
+                mobileDropdownMenu.classList.remove('active');
+            });
+        });
+        
+        // Close menu when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!mobileHamburgerBtn.contains(e.target) && !mobileDropdownMenu.contains(e.target)) {
+                mobileHamburgerBtn.classList.remove('active');
+                mobileDropdownMenu.classList.remove('active');
+            }
+        });
+    }
+    
     // Product search (now in Products page)
     document.getElementById('product-search').addEventListener('input', debounce(handleProductSearch, 300));
     
@@ -1195,6 +1225,12 @@ async function updateLayawayBadge() {
     const pending = await db.getPendingLayaways();
     const badge = document.getElementById('layaway-count-badge');
     badge.textContent = pending.length > 0 ? pending.length : '';
+    
+    // Also update mobile menu badge
+    const mobileBadge = document.getElementById('mobile-layaway-badge');
+    if (mobileBadge) {
+        mobileBadge.textContent = pending.length > 0 ? pending.length : '';
+    }
 }
 
 function openLayawayModal() {
