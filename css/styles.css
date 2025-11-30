@@ -2275,20 +2275,22 @@ h4 { font-size: 1.125rem; }
 /* ========================================
    POS Full Width Layout
    ======================================== */
+#page-pos {
+    padding: 0;
+}
+
 .pos-container-full {
     display: flex;
-    justify-content: center;
-    height: calc(100vh - 2 * var(--spacing-xl));
+    height: 100dvh;
 }
 
 .pos-cart-full {
     width: 100%;
-    max-width: 800px;
     display: flex;
     flex-direction: column;
-    background: var(--white);
-    border-radius: var(--radius-xl);
-    box-shadow: var(--shadow-lg);
+    background: transparent;
+    border-radius: 0;
+    box-shadow: none;
     overflow: hidden;
 }
 
@@ -2297,26 +2299,25 @@ h4 { font-size: 1.125rem; }
     justify-content: space-between;
     align-items: center;
     padding: var(--spacing-xl);
-    border-bottom: 1px solid var(--gray-100);
-    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-    color: var(--white);
+    border-bottom: 1px solid var(--gray-200);
+    background: var(--cream);
 }
 
 .pos-cart-full .cart-header h3 {
     font-size: 1.75rem;
-    color: var(--white);
+    color: var(--gray-900);
     margin: 0;
 }
 
 .pos-cart-full .btn-clear-cart {
-    background: rgba(255, 255, 255, 0.2);
+    background: var(--gray-100);
     border-radius: var(--radius-md);
     padding: var(--spacing-sm);
-    color: var(--white);
+    color: var(--gray-600);
 }
 
 .pos-cart-full .btn-clear-cart:hover {
-    background: rgba(255, 255, 255, 0.3);
+    background: var(--gray-200);
 }
 
 .upc-scanner-large {
@@ -2324,8 +2325,8 @@ h4 { font-size: 1.125rem; }
     display: flex;
     gap: var(--spacing-md);
     align-items: center;
-    background: var(--gray-50);
-    border-bottom: 1px solid var(--gray-100);
+    background: transparent;
+    border-bottom: 1px solid var(--gray-200);
 }
 
 .search-container-full {
@@ -2381,8 +2382,8 @@ h4 { font-size: 1.125rem; }
 
 .cart-summary-large {
     padding: var(--spacing-xl);
-    background: var(--gray-50);
-    border-top: 1px solid var(--gray-100);
+    background: transparent;
+    border-top: 1px solid var(--gray-200);
 }
 
 .cart-summary-large .summary-row {
@@ -2398,8 +2399,8 @@ h4 { font-size: 1.125rem; }
 
 .cart-actions-large {
     padding: var(--spacing-xl);
-    background: var(--white);
-    border-top: 1px solid var(--gray-100);
+    background: transparent;
+    border-top: 1px solid var(--gray-200);
 }
 
 .cart-actions-large .cart-actions-row {
