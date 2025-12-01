@@ -950,14 +950,27 @@ async function saveProduct() {
     };
     
     try {
+        let savedProduct;
         if (state.editingProduct) {
             product.id = state.editingProduct.id;
             product.createdAt = state.editingProduct.createdAt;
+            product.firebaseKey = state.editingProduct.firebaseKey; // Preserve firebaseKey
             await db.updateProduct(product);
+            savedProduct = product;
             showToast('Producto actualizado', 'success');
         } else {
-            await db.addProduct(product);
+            const productId = await db.addProduct(product);
+            savedProduct = await db.getProduct(productId);
             showToast('Producto creado', 'success');
+        }
+        
+        // Sync to Firebase for cross-device synchronization
+        if (typeof firebaseSync !== 'undefined' && firebaseSync.isUserAuthenticated() && savedProduct) {
+            try {
+                await firebaseSync.uploadSingle('products', savedProduct);
+            } catch (syncError) {
+                console.warn('Firebase sync failed, product saved locally:', syncError);
+            }
         }
         
         closeAllModals();
@@ -973,7 +986,22 @@ async function deleteProduct(productId) {
     if (!confirm('¿Estás seguro de eliminar este producto?')) return;
     
     try {
+        // Get the product first to retrieve its firebaseKey
+        const product = await db.getProduct(productId);
+        const firebaseKey = product ? product.firebaseKey : null;
+        
+        // Delete from local IndexedDB
         await db.deleteProduct(productId);
+        
+        // Sync deletion to Firebase if authenticated
+        if (typeof firebaseSync !== 'undefined' && firebaseSync.isUserAuthenticated()) {
+            try {
+                await firebaseSync.deleteSingle('products', productId, firebaseKey);
+            } catch (syncError) {
+                console.warn('Firebase sync failed, product deleted locally:', syncError);
+            }
+        }
+        
         showToast('Producto eliminado', 'success');
         await loadProducts();
     } catch (error) {

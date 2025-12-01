@@ -108,9 +108,102 @@ function setupRealtimeListeners() {
             console.log('Cambio en ' + col + ':', key);
             handleRemoteData(col, key, data);
         });
+
+        // Listener para eliminaciones
+        ref.on('child_removed', function(snapshot) {
+            var key = snapshot.key;
+            console.log('Eliminado de ' + col + ':', key);
+            handleRemoteDelete(col, key);
+        });
     });
 
     console.log('Listeners en tiempo real configurados');
+}
+
+// Manejar eliminaciones remotas
+function handleRemoteDelete(collection, firebaseKey) {
+    if (!db || !db.isReady) return;
+
+    var localCollection = null;
+    for (var local in collectionMap) {
+        if (collectionMap[local] === collection) {
+            localCollection = local;
+            break;
+        }
+    }
+
+    if (!localCollection) return;
+
+    // Eliminar de IndexedDB local
+    deleteFromLocal(localCollection, firebaseKey);
+}
+
+// Eliminar datos de local
+function deleteFromLocal(collection, firebaseKey) {
+    if (!db || !db.isReady) return;
+
+    try {
+        switch (collection) {
+            case 'products':
+                db.getAllProducts().then(function(products) {
+                    var product = products.find(function(p) { return p.firebaseKey === firebaseKey; });
+                    if (product && product.id) {
+                        db.deleteProduct(product.id).then(function() {
+                            console.log('Producto eliminado localmente:', product.name);
+                        }).catch(function(err) {
+                            console.error('Error eliminando producto localmente:', err);
+                        });
+                    }
+                }).catch(function(err) {
+                    console.error('Error obteniendo productos para eliminación:', err);
+                });
+                break;
+            case 'layaways':
+                db.getAllLayaways().then(function(layaways) {
+                    var layaway = layaways.find(function(l) { return l.firebaseKey === firebaseKey; });
+                    if (layaway && layaway.id) {
+                        // Solo eliminar si está pendiente (no completado)
+                        if (layaway.status === 'pending') {
+                            // Usar acceso directo al store en lugar de db.deleteLayaway() 
+                            // porque db.deleteLayaway() restaura el stock, pero al sincronizar 
+                            // desde Firebase el stock ya fue restaurado en el dispositivo original
+                            try {
+                                var store = db.getStore('layaways', 'readwrite');
+                                var request = store.delete(layaway.id);
+                                request.onsuccess = function() {
+                                    console.log('Apartado eliminado localmente:', layaway.customerName);
+                                };
+                                request.onerror = function() {
+                                    console.error('Error eliminando apartado localmente:', request.error);
+                                };
+                            } catch (storeErr) {
+                                console.error('Error accediendo al store de apartados:', storeErr);
+                            }
+                        }
+                    }
+                }).catch(function(err) {
+                    console.error('Error obteniendo apartados para eliminación:', err);
+                });
+                break;
+            case 'owners':
+                db.getAllOwners().then(function(owners) {
+                    var owner = owners.find(function(o) { return o.firebaseKey === firebaseKey; });
+                    if (owner && owner.id) {
+                        db.deleteOwner(owner.id).then(function() {
+                            console.log('Dueña eliminada localmente:', owner.name);
+                        }).catch(function(err) {
+                            console.error('Error eliminando dueña localmente:', err);
+                        });
+                    }
+                }).catch(function(err) {
+                    console.error('Error obteniendo dueñas para eliminación:', err);
+                });
+                break;
+            // sales y settings no se eliminan remotamente
+        }
+    } catch (e) {
+        console.error('Error eliminando localmente:', e);
+    }
 }
 
 // Manejar datos remotos
@@ -141,10 +234,41 @@ function saveToLocal(collection, firebaseKey, data) {
         switch (collection) {
             case 'products':
                 db.getAllProducts().then(function(products) {
-                    var exists = products.find(function(p) { return p.firebaseKey === firebaseKey; });
+                    // Verificar si el producto ya existe por firebaseKey, SKU o nombre+precio
+                    var exists = products.find(function(p) { 
+                        // Verificar por firebaseKey primero
+                        if (p.firebaseKey === firebaseKey) return true;
+                        // También verificar por SKU si existe
+                        if (p.sku && record.sku && p.sku === record.sku) {
+                            // Actualizar el registro local con firebaseKey para futuras sincronizaciones
+                            if (!p.firebaseKey) {
+                                p.firebaseKey = firebaseKey;
+                                db.updateProduct(p).catch(function(err) {
+                                    console.error('Error actualizando firebaseKey del producto:', err);
+                                });
+                            }
+                            return true;
+                        }
+                        // También verificar por nombre y precio (para productos sin SKU)
+                        if (p.name === record.name && p.price === record.price) {
+                            // Actualizar el registro local con firebaseKey para futuras sincronizaciones
+                            if (!p.firebaseKey) {
+                                p.firebaseKey = firebaseKey;
+                                db.updateProduct(p).catch(function(err) {
+                                    console.error('Error actualizando firebaseKey del producto:', err);
+                                });
+                            }
+                            return true;
+                        }
+                        return false;
+                    });
                     if (!exists) {
-                        db.addProduct(record);
+                        db.addProduct(record).catch(function(err) {
+                            console.error('Error agregando producto desde Firebase:', err);
+                        });
                     }
+                }).catch(function(err) {
+                    console.error('Error obteniendo productos para sincronización:', err);
                 });
                 break;
             case 'sales':
@@ -178,9 +302,21 @@ function saveToLocal(collection, firebaseKey, data) {
                         return false;
                     });
                     if (!exists) {
-                        var store = db.getStore('layaways', 'readwrite');
-                        store.add(record);
+                        try {
+                            var store = db.getStore('layaways', 'readwrite');
+                            var request = store.add(record);
+                            request.onsuccess = function() {
+                                console.log('Apartado agregado desde Firebase');
+                            };
+                            request.onerror = function() {
+                                console.error('Error agregando apartado:', request.error);
+                            };
+                        } catch (storeErr) {
+                            console.error('Error accediendo al store de apartados:', storeErr);
+                        }
                     }
+                }).catch(function(err) {
+                    console.error('Error obteniendo apartados para sincronización:', err);
                 });
                 break;
             case 'owners':
@@ -188,14 +324,20 @@ function saveToLocal(collection, firebaseKey, data) {
                     db.getAllOwners().then(function(owners) {
                         var exists = owners.find(function(o) { return o.name === data.name; });
                         if (!exists) {
-                            db.addOwner(data.name);
+                            db.addOwner(data.name).catch(function(err) {
+                                console.error('Error agregando dueña:', err);
+                            });
                         }
+                    }).catch(function(err) {
+                        console.error('Error obteniendo dueñas para sincronización:', err);
                     });
                 }
                 break;
             case 'settings':
                 if (data.value !== undefined) {
-                    db.saveSetting(firebaseKey, data.value);
+                    db.saveSetting(firebaseKey, data.value).catch(function(err) {
+                        console.error('Error guardando configuración:', err);
+                    });
                 }
                 break;
         }
@@ -381,8 +523,31 @@ var firebaseSync = {
                         record.firebaseKey = key;
                         if (collection === 'layaways') {
                             db.updateLayaway(record);
+                        } else if (collection === 'products') {
+                            db.updateProduct(record);
                         }
                     }
+                    resolve();
+                }).catch(reject);
+            } catch (e) {
+                reject(e);
+            }
+        });
+    },
+    deleteSingle: function(collection, localId, firebaseKey) {
+        return new Promise(function(resolve, reject) {
+            if (!firebaseDb || !isLoggedIn) {
+                reject(new Error('Firebase no disponible'));
+                return;
+            }
+            
+            try {
+                // Si tenemos firebaseKey, usar ese; sino, intentar con local_id
+                var key = firebaseKey || ('local_' + localId);
+                var path = getFirebasePath(collection) + '/' + key;
+                
+                firebaseDb.ref(path).remove().then(function() {
+                    console.log('Eliminado de Firebase:', path);
                     resolve();
                 }).catch(reject);
             } catch (e) {
