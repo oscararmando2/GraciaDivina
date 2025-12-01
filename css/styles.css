@@ -3422,6 +3422,17 @@ h4 { font-size: 1.125rem; }
         margin-top: var(--spacing-sm);
     }
     
+    /* ========================================
+       Layaway Detail Modal - Mobile: Hide certain buttons
+       Only show: Agregar Abono and Cerrar
+       Hide: Liquidar, Eliminar, Exportar PDF
+       ======================================== */
+    #layaway-detail-modal .modal-footer #delete-layaway-btn,
+    #layaway-detail-modal .modal-footer #export-layaway-pdf,
+    #layaway-detail-modal .modal-footer #complete-layaway-btn {
+        display: none !important;
+    }
+    
     .checkout-body {
         grid-template-columns: 1fr;
         gap: var(--spacing-md);
