@@ -10,9 +10,13 @@ var firebaseConfig = {
     databaseURL: "https://gracia-divina-c70c6-default-rtdb.firebaseio.com"
 };
 
-// Credenciales para login automático
+// Credenciales para login automático (configuración del negocio)
 var autoEmail = 'ketzy@gmail.com';
 var autoPassword = 'Ketzy123';
+
+// Constantes de tiempo
+var SYNC_INTERVAL_MS = 10000;  // Sincronización cada 10 segundos
+var RELOAD_DELAY_MS = 1500;    // Tiempo antes de recargar la página
 
 // Carpeta raíz en Firebase
 var rootPath = 'graciadivina_ketzy2025';
@@ -144,7 +148,8 @@ function saveToLocal(collection, firebaseKey, data) {
                 });
                 break;
             case 'sales':
-                // Las ventas solo se agregan si no existen
+                // Las ventas son de solo lectura desde Firebase
+                // Se crean localmente y se sincronizan hacia arriba
                 break;
             case 'layaways':
                 db.getAllLayaways().then(function(layaways) {
@@ -246,7 +251,7 @@ function startAutoSync() {
         if (isLoggedIn) {
             uploadLocalData();
         }
-    }, 10000);
+    }, SYNC_INTERVAL_MS);
 
     console.log('Sincronización automática iniciada (cada 10 segundos)');
 }
@@ -283,7 +288,7 @@ function createSyncButton() {
 
         setTimeout(function() {
             location.reload();
-        }, 1500);
+        }, RELOAD_DELAY_MS);
     };
 
     document.body.appendChild(btn);
