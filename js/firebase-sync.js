@@ -164,6 +164,9 @@ function deleteFromLocal(collection, firebaseKey) {
                     if (layaway && layaway.id) {
                         // Solo eliminar si está pendiente (no completado)
                         if (layaway.status === 'pending') {
+                            // Usar acceso directo al store en lugar de db.deleteLayaway() 
+                            // porque db.deleteLayaway() restaura el stock, pero al sincronizar 
+                            // desde Firebase el stock ya fue restaurado en el dispositivo original
                             try {
                                 var store = db.getStore('layaways', 'readwrite');
                                 var request = store.delete(layaway.id);
