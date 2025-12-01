@@ -174,8 +174,11 @@
                             <div class="summary-row">
                                 <span>Descuento:</span>
                                 <div class="discount-input-container">
-                                    <input type="number" id="discount-input" value="0" min="0" max="100" class="discount-input">
-                                    <span>%</span>
+                                    <input type="number" id="discount-input" value="0" min="0" class="discount-input">
+                                    <select id="discount-type" class="discount-type-select">
+                                        <option value="percent">%</option>
+                                        <option value="amount">$</option>
+                                    </select>
                                 </div>
                             </div>
                             <div class="summary-row total">
