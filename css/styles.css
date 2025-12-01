@@ -808,6 +808,17 @@ h4 { font-size: 1.125rem; }
     background: #DC2626;
 }
 
+.btn-info {
+    background: var(--info);
+    color: var(--white);
+}
+
+.btn-info:hover:not(:disabled) {
+    background: #2563EB;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
 .btn-lg {
     padding: var(--spacing-md) var(--spacing-xl);
     font-size: 1rem;
@@ -1224,6 +1235,16 @@ h4 { font-size: 1.125rem; }
     gap: var(--spacing-md);
     padding: var(--spacing-lg);
     border-top: 1px solid var(--gray-100);
+    flex-wrap: wrap;
+}
+
+/* Layaway Detail Modal Footer - arrange buttons nicely */
+#layaway-detail-modal .modal-footer {
+    justify-content: space-between;
+}
+
+#layaway-detail-modal .modal-footer .btn-danger {
+    margin-right: auto;
 }
 
 /* Checkout Modal Specific */
@@ -3385,10 +3406,20 @@ h4 { font-size: 1.125rem; }
         padding: var(--spacing-md);
         flex-direction: column-reverse;
         gap: var(--spacing-sm);
+        flex-wrap: wrap;
     }
     
     .modal-footer .btn {
         width: 100%;
+    }
+    
+    #layaway-detail-modal .modal-footer {
+        flex-direction: column;
+    }
+    
+    #layaway-detail-modal .modal-footer .btn-danger {
+        order: 5;
+        margin-top: var(--spacing-sm);
     }
     
     .checkout-body {
