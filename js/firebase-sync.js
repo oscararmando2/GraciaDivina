@@ -153,21 +153,26 @@ function saveToLocal(collection, firebaseKey, data) {
                 break;
             case 'layaways':
                 db.getAllLayaways().then(function(layaways) {
-                    // Check if layaway already exists by firebaseKey OR by matching customer info and date
+                    // Verificar si el apartado ya existe por firebaseKey O por info del cliente y fecha
                     var exists = layaways.find(function(l) { 
-                        // Check by firebaseKey first
+                        // Verificar por firebaseKey primero
                         if (l.firebaseKey === firebaseKey) return true;
-                        // Also check by matching customer name, phone, and approximate date (same day)
+                        // También verificar por nombre, teléfono y fecha aproximada (mismo día)
                         if (l.customerName === record.customerName && 
                             l.customerPhone === record.customerPhone) {
-                            // Check if the dates are on the same day
-                            var localDate = new Date(l.date);
-                            var remoteDate = new Date(record.date);
-                            if (localDate.toDateString() === remoteDate.toDateString()) {
-                                // Update the local record with the firebaseKey for future syncs
-                                l.firebaseKey = firebaseKey;
-                                db.updateLayaway(l);
-                                return true;
+                            // Verificar que las fechas sean válidas antes de comparar
+                            if (l.date && record.date) {
+                                var localDate = new Date(l.date);
+                                var remoteDate = new Date(record.date);
+                                // Verificar que las fechas son válidas
+                                if (!isNaN(localDate.getTime()) && !isNaN(remoteDate.getTime())) {
+                                    if (localDate.toDateString() === remoteDate.toDateString()) {
+                                        // Actualizar el registro local con firebaseKey para futuras sincronizaciones
+                                        l.firebaseKey = firebaseKey;
+                                        db.updateLayaway(l);
+                                        return true;
+                                    }
+                                }
                             }
                         }
                         return false;
@@ -351,7 +356,7 @@ window.syncNow = function() {
     }
 };
 
-// Firebase Sync API para uso desde app.js
+// API de sincronización Firebase para uso desde app.js
 var firebaseSync = {
     isUserAuthenticated: function() {
         return isLoggedIn;
@@ -371,7 +376,7 @@ var firebaseSync = {
                 data.updatedAt = data.updatedAt || new Date().toISOString();
                 
                 firebaseDb.ref(path).set(data).then(function() {
-                    // Update local record with firebaseKey if not already set
+                    // Actualizar registro local con firebaseKey si no está establecido
                     if (!record.firebaseKey && record.id) {
                         record.firebaseKey = key;
                         if (collection === 'layaways') {
