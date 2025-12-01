@@ -153,7 +153,25 @@ function saveToLocal(collection, firebaseKey, data) {
                 break;
             case 'layaways':
                 db.getAllLayaways().then(function(layaways) {
-                    var exists = layaways.find(function(l) { return l.firebaseKey === firebaseKey; });
+                    // Check if layaway already exists by firebaseKey OR by matching customer info and date
+                    var exists = layaways.find(function(l) { 
+                        // Check by firebaseKey first
+                        if (l.firebaseKey === firebaseKey) return true;
+                        // Also check by matching customer name, phone, and approximate date (same day)
+                        if (l.customerName === record.customerName && 
+                            l.customerPhone === record.customerPhone) {
+                            // Check if the dates are on the same day
+                            var localDate = new Date(l.date);
+                            var remoteDate = new Date(record.date);
+                            if (localDate.toDateString() === remoteDate.toDateString()) {
+                                // Update the local record with the firebaseKey for future syncs
+                                l.firebaseKey = firebaseKey;
+                                db.updateLayaway(l);
+                                return true;
+                            }
+                        }
+                        return false;
+                    });
                     if (!exists) {
                         var store = db.getStore('layaways', 'readwrite');
                         store.add(record);
@@ -332,3 +350,41 @@ window.syncNow = function() {
         uploadLocalData();
     }
 };
+
+// Firebase Sync API para uso desde app.js
+var firebaseSync = {
+    isUserAuthenticated: function() {
+        return isLoggedIn;
+    },
+    uploadSingle: function(collection, record) {
+        return new Promise(function(resolve, reject) {
+            if (!firebaseDb || !isLoggedIn) {
+                reject(new Error('Firebase no disponible'));
+                return;
+            }
+            
+            try {
+                var key = record.firebaseKey || ('local_' + record.id);
+                var path = getFirebasePath(collection) + '/' + key;
+                var data = Object.assign({}, record);
+                delete data.id;
+                data.updatedAt = data.updatedAt || new Date().toISOString();
+                
+                firebaseDb.ref(path).set(data).then(function() {
+                    // Update local record with firebaseKey if not already set
+                    if (!record.firebaseKey && record.id) {
+                        record.firebaseKey = key;
+                        if (collection === 'layaways') {
+                            db.updateLayaway(record);
+                        }
+                    }
+                    resolve();
+                }).catch(reject);
+            } catch (e) {
+                reject(e);
+            }
+        });
+    }
+};
+
+window.firebaseSync = firebaseSync;

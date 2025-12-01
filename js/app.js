@@ -254,6 +254,18 @@ function navigateTo(page) {
         p.classList.toggle('active', p.id === `page-${page}`);
     });
     
+    // Scroll main content to top when navigating to a new page
+    const mainContent = document.querySelector('.main-content');
+    if (mainContent) {
+        mainContent.scrollTop = 0;
+    }
+    
+    // Also scroll the page itself to top
+    const activePage = document.getElementById(`page-${page}`);
+    if (activePage) {
+        activePage.scrollTop = 0;
+    }
+    
     // Load page-specific data
     switch (page) {
         case 'products':
