@@ -256,15 +256,16 @@ function startAutoSync() {
     console.log('Sincronización automática iniciada (cada 10 segundos)');
 }
 
-// Crear botón flotante morado
+// Crear botón flotante morado con icono de refresh
 function createSyncButton() {
     var btn = document.createElement('button');
     btn.id = 'sync-now-btn';
-    btn.innerHTML = 'Sincronizar ahora';
+    btn.innerHTML = '🔄';
+    btn.title = 'Sincronizar ahora';
     btn.style.cssText = 'position:fixed;bottom:20px;right:20px;z-index:9999;' +
         'background:linear-gradient(135deg,#8B5CF6 0%,#7C3AED 100%);' +
-        'color:white;border:none;padding:15px 25px;border-radius:30px;' +
-        'font-family:Poppins,sans-serif;font-size:14px;font-weight:600;' +
+        'color:white;border:none;width:48px;height:48px;border-radius:50%;' +
+        'font-size:20px;display:flex;align-items:center;justify-content:center;' +
         'cursor:pointer;box-shadow:0 4px 15px rgba(139,92,246,0.4);' +
         'transition:all 0.3s ease;';
 
@@ -279,7 +280,7 @@ function createSyncButton() {
     };
 
     btn.onclick = function() {
-        btn.innerHTML = 'Sincronizando...';
+        btn.style.animation = 'spin 1s linear infinite';
         btn.disabled = true;
 
         if (isLoggedIn) {
@@ -290,6 +291,11 @@ function createSyncButton() {
             location.reload();
         }, RELOAD_DELAY_MS);
     };
+
+    // Add spin animation for loading state
+    var style = document.createElement('style');
+    style.textContent = '@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }';
+    document.head.appendChild(style);
 
     document.body.appendChild(btn);
 }
