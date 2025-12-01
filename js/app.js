@@ -170,6 +170,7 @@ function initializeUI() {
     // Cart controls
     document.getElementById('clear-cart').addEventListener('click', clearCart);
     document.getElementById('discount-input').addEventListener('input', updateCartTotals);
+    document.getElementById('discount-type').addEventListener('change', updateCartTotals);
     
     // Two checkout buttons
     document.getElementById('btn-vender').addEventListener('click', openCheckoutModal);
@@ -578,6 +579,7 @@ function clearCart() {
     if (confirm('¿Deseas limpiar la venta actual?')) {
         state.cart = [];
         document.getElementById('discount-input').value = 0;
+        document.getElementById('discount-type').value = 'percent';
         updateCartUI();
     }
 }
@@ -621,8 +623,10 @@ function updateCartUI() {
 
 function updateCartTotals() {
     const subtotal = state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const discountPercent = parseFloat(document.getElementById('discount-input').value) || 0;
-    const discount = subtotal * (discountPercent / 100);
+    const discountValue = parseFloat(document.getElementById('discount-input').value) || 0;
+    const discountType = document.getElementById('discount-type').value;
+    
+    const { discount } = calculateDiscountAmount(subtotal, discountValue, discountType);
     const total = subtotal - discount;
     
     document.getElementById('cart-subtotal').textContent = formatCurrency(subtotal);
@@ -636,8 +640,10 @@ function openCheckoutModal() {
     if (state.cart.length === 0) return;
     
     const subtotal = state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const discountPercent = parseFloat(document.getElementById('discount-input').value) || 0;
-    const discount = subtotal * (discountPercent / 100);
+    const discountValue = parseFloat(document.getElementById('discount-input').value) || 0;
+    const discountType = document.getElementById('discount-type').value;
+    
+    const { discount } = calculateDiscountAmount(subtotal, discountValue, discountType);
     const total = subtotal - discount;
     
     // Populate checkout items
@@ -677,8 +683,11 @@ function handlePaymentMethodChange(e) {
 
 function calculateChange() {
     const subtotal = state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const discountPercent = parseFloat(document.getElementById('discount-input').value) || 0;
-    const total = subtotal - (subtotal * (discountPercent / 100));
+    const discountValue = parseFloat(document.getElementById('discount-input').value) || 0;
+    const discountType = document.getElementById('discount-type').value;
+    
+    const { discount } = calculateDiscountAmount(subtotal, discountValue, discountType);
+    const total = subtotal - discount;
     
     const received = parseFloat(document.getElementById('amount-received').value) || 0;
     const change = Math.max(0, received - total);
@@ -689,8 +698,10 @@ function calculateChange() {
 async function completeSale() {
     const paymentMethod = document.querySelector('input[name="payment-method"]:checked').value;
     const subtotal = state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const discountPercent = parseFloat(document.getElementById('discount-input').value) || 0;
-    const discount = subtotal * (discountPercent / 100);
+    const discountValue = parseFloat(document.getElementById('discount-input').value) || 0;
+    const discountType = document.getElementById('discount-type').value;
+    
+    const { discount, discountPercent } = calculateDiscountAmount(subtotal, discountValue, discountType);
     const total = subtotal - discount;
     
     // Calculate total cost and profit
@@ -707,7 +718,7 @@ async function completeSale() {
     }
     
     try {
-        const amountReceived = paymentMethod === 'efectivo' 
+        const amountReceived = paymentMethod === 'efectivo'
             ? parseFloat(document.getElementById('amount-received').value) 
             : total;
         
@@ -724,6 +735,8 @@ async function completeSale() {
                 owner: item.owner || ''
             })),
             subtotal,
+            discountType,
+            discountValue,
             discountPercent,
             discount,
             total,
@@ -739,6 +752,7 @@ async function completeSale() {
         // Clear cart and reset
         state.cart = [];
         document.getElementById('discount-input').value = 0;
+        document.getElementById('discount-type').value = 'percent';
         updateCartUI();
         
         closeAllModals();
@@ -1080,7 +1094,7 @@ async function viewSaleDetails(saleId) {
                         <span>${formatCurrency(sale.subtotal)}</span>
                     </div>
                     <div class="ticket-total-row">
-                        <span>Descuento (${sale.discountPercent}%):</span>
+                        <span>Descuento ${sale.discountType === 'amount' ? `($${sale.discountValue})` : `(${sale.discountPercent}%)`}:</span>
                         <span>-${formatCurrency(sale.discount)}</span>
                     </div>
                 ` : ''}
@@ -2201,6 +2215,32 @@ function showToast(message, type = 'info') {
 // ========================================
 // UTILITY FUNCTIONS
 // ========================================
+
+/**
+ * Calculate discount based on type (percent or amount)
+ * @param {number} subtotal - The subtotal amount
+ * @param {number} discountValue - The discount value entered by user
+ * @param {string} discountType - 'percent' or 'amount'
+ * @returns {object} - { discount, discountPercent }
+ */
+function calculateDiscountAmount(subtotal, discountValue, discountType) {
+    let discount;
+    let discountPercent;
+    
+    if (discountType === 'percent') {
+        // Cap percentage at 100
+        const cappedValue = Math.min(discountValue, 100);
+        discountPercent = cappedValue;
+        discount = subtotal * (cappedValue / 100);
+    } else {
+        // Fixed amount - cannot exceed subtotal
+        discount = Math.min(discountValue, subtotal);
+        discountPercent = subtotal > 0 ? (discount / subtotal) * 100 : 0;
+    }
+    
+    return { discount, discountPercent };
+}
+
 function formatCurrency(amount) {
     return new Intl.NumberFormat('es-MX', {
         style: 'currency',
