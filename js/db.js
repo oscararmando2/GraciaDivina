@@ -441,6 +441,33 @@ class Database {
     }
 
     /**
+     * Delete a layaway and restore stock
+     */
+    async deleteLayaway(layawayId) {
+        const layaway = await this.getLayaway(layawayId);
+        if (!layaway) return null;
+
+        // Only allow deletion if status is pending
+        if (layaway.status === 'completed') {
+            throw new Error('No se puede eliminar un apartado completado');
+        }
+
+        // Restore stock for each item
+        for (const item of layaway.items) {
+            await this.updateStock(item.productId, item.quantity);
+        }
+
+        // Delete the layaway record
+        return new Promise((resolve, reject) => {
+            const store = this.getStore('layaways', 'readwrite');
+            const request = store.delete(layawayId);
+            
+            request.onsuccess = () => resolve(true);
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    /**
      * Get all layaways
      */
     async getAllLayaways() {

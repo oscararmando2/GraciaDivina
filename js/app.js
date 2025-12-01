@@ -203,6 +203,8 @@ function initializeUI() {
     document.getElementById('add-layaway-payment').addEventListener('click', openPaymentModal);
     document.getElementById('confirm-payment').addEventListener('click', confirmLayawayPayment);
     document.getElementById('complete-layaway-btn').addEventListener('click', completeLayaway);
+    document.getElementById('delete-layaway-btn').addEventListener('click', deleteLayaway);
+    document.getElementById('export-layaway-pdf').addEventListener('click', exportLayawayPDF);
     
     // Sales page
     document.getElementById('filter-sales').addEventListener('click', filterSales);
@@ -1611,6 +1613,9 @@ async function viewLayawayDetails(layawayId) {
     document.getElementById('add-layaway-payment').style.display = layaway.status === 'pending' ? '' : 'none';
     document.getElementById('complete-layaway-btn').disabled = layaway.pendingAmount > 0;
     document.getElementById('complete-layaway-btn').style.display = layaway.status === 'pending' ? '' : 'none';
+    document.getElementById('delete-layaway-btn').style.display = layaway.status === 'pending' ? '' : 'none';
+    // Export PDF is always visible
+    document.getElementById('export-layaway-pdf').style.display = '';
     
     openModal('layaway-detail-modal');
 }
@@ -1702,6 +1707,285 @@ async function completeLayaway() {
         console.error('Error completing layaway:', error);
         showToast('Error al liquidar apartado', 'error');
     }
+}
+
+async function deleteLayaway() {
+    if (!state.currentLayaway) return;
+    
+    // Only allow deletion of pending layaways
+    if (state.currentLayaway.status === 'completed') {
+        showToast('No se puede eliminar un apartado completado', 'warning');
+        return;
+    }
+    
+    if (!confirm('⚠️ ¿Estás seguro de eliminar este apartado?\n\nEsta acción eliminará el apartado y devolverá los productos al inventario.')) return;
+    
+    if (!confirm('Esta es tu última oportunidad. ¿Realmente deseas eliminar este apartado?')) return;
+    
+    try {
+        await db.deleteLayaway(state.currentLayaway.id);
+        
+        // Sync deletion to Firebase if authenticated
+        if (typeof firebaseSync !== 'undefined' && firebaseSync.isUserAuthenticated()) {
+            try {
+                await firebaseSync.deleteSingle('layaways', state.currentLayaway.id);
+            } catch (syncError) {
+                console.warn('Firebase sync failed, layaway deleted locally:', syncError);
+            }
+        }
+        
+        closeAllModals();
+        await loadLayaways();
+        await updateLayawayBadge();
+        
+        // Refresh products to show restored stock
+        const activeCategory = document.querySelector('.category-tab.active')?.dataset.category || 'all';
+        const searchQuery = document.getElementById('product-search')?.value || '';
+        await loadProducts(activeCategory, searchQuery);
+        
+        showToast('Apartado eliminado correctamente', 'success');
+    } catch (error) {
+        console.error('Error deleting layaway:', error);
+        showToast('Error al eliminar apartado', 'error');
+    }
+}
+
+function exportLayawayPDF() {
+    if (!state.currentLayaway) return;
+    
+    const layaway = state.currentLayaway;
+    
+    // Create PDF content using a new window for printing
+    const printWindow = window.open('', '_blank');
+    
+    // Generate payments history HTML
+    const paymentsHTML = layaway.payments.map(payment => `
+        <tr>
+            <td style="padding: 8px; border-bottom: 1px solid #ddd;">${formatDateTime(payment.date)}</td>
+            <td style="padding: 8px; border-bottom: 1px solid #ddd;">${payment.paymentMethod}</td>
+            <td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: right; color: #10B981; font-weight: bold;">${formatCurrency(payment.amount)}</td>
+        </tr>
+    `).join('');
+    
+    // Generate products HTML
+    const productsHTML = layaway.items.map(item => `
+        <tr>
+            <td style="padding: 8px; border-bottom: 1px solid #ddd;">${escapeHtml(item.name)}</td>
+            <td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: center;">${item.quantity}</td>
+            <td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: right;">${formatCurrency(item.price)}</td>
+            <td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: right;">${formatCurrency(item.subtotal)}</td>
+        </tr>
+    `).join('');
+    
+    const statusText = layaway.status === 'pending' ? 'Pendiente' : 'Completado';
+    const statusColor = layaway.status === 'pending' ? '#F59E0B' : '#10B981';
+    
+    printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Apartado - ${escapeHtml(layaway.customerName)}</title>
+            <meta charset="UTF-8">
+            <style>
+                body { 
+                    font-family: Arial, sans-serif; 
+                    padding: 20px; 
+                    max-width: 800px; 
+                    margin: 0 auto;
+                    color: #333;
+                }
+                .header { 
+                    text-align: center; 
+                    margin-bottom: 30px;
+                    padding-bottom: 20px;
+                    border-bottom: 2px solid #8B5CF6;
+                }
+                .header h1 { 
+                    color: #8B5CF6; 
+                    margin: 0 0 10px 0;
+                    font-size: 28px;
+                }
+                .header .logo {
+                    font-size: 3rem;
+                    margin-bottom: 10px;
+                }
+                .header p { 
+                    color: #666; 
+                    margin: 5px 0;
+                }
+                .customer-info { 
+                    background: #f5f5f5; 
+                    padding: 20px; 
+                    border-radius: 10px;
+                    margin-bottom: 20px;
+                }
+                .customer-info h3 { 
+                    margin-top: 0; 
+                    color: #8B5CF6;
+                }
+                .status-badge {
+                    display: inline-block;
+                    padding: 5px 15px;
+                    border-radius: 20px;
+                    font-weight: bold;
+                    color: white;
+                    background: ${statusColor};
+                    margin-left: 10px;
+                }
+                table { 
+                    width: 100%; 
+                    border-collapse: collapse; 
+                    margin: 20px 0;
+                }
+                th { 
+                    background: #8B5CF6; 
+                    color: white; 
+                    padding: 12px 8px; 
+                    text-align: left;
+                }
+                .section { 
+                    margin-bottom: 30px; 
+                }
+                .section h3 { 
+                    color: #8B5CF6;
+                    border-bottom: 2px solid #8B5CF6;
+                    padding-bottom: 10px;
+                    margin-bottom: 15px;
+                }
+                .totals { 
+                    background: #f9f9f9; 
+                    padding: 20px; 
+                    border-radius: 10px;
+                }
+                .totals-row { 
+                    display: flex; 
+                    justify-content: space-between; 
+                    padding: 10px 0;
+                    border-bottom: 1px solid #eee;
+                }
+                .totals-row.final { 
+                    font-weight: bold; 
+                    font-size: 1.3em;
+                    border-bottom: none;
+                    padding-top: 15px;
+                    margin-top: 10px;
+                    border-top: 2px solid #8B5CF6;
+                }
+                .pending-amount {
+                    color: ${layaway.pendingAmount > 0 ? '#EF4444' : '#10B981'};
+                    font-weight: bold;
+                }
+                .footer { 
+                    margin-top: 40px; 
+                    text-align: center; 
+                    color: #666;
+                    font-size: 12px;
+                    padding-top: 20px;
+                    border-top: 1px solid #ddd;
+                }
+                @media print {
+                    body { padding: 0; }
+                    .no-print { display: none; }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <div class="logo">✨</div>
+                <h1>${state.settings.businessName || 'Gracia Divina'}</h1>
+                ${state.settings.businessPhone ? `<p>📞 ${state.settings.businessPhone}</p>` : ''}
+                ${state.settings.businessAddress ? `<p>📍 ${state.settings.businessAddress}</p>` : ''}
+                <p style="margin-top: 15px; font-size: 1.2em; font-weight: bold;">Detalle de Apartado</p>
+            </div>
+            
+            <div class="customer-info">
+                <h3>👤 Información del Cliente <span class="status-badge">${statusText}</span></h3>
+                <p><strong>Nombre:</strong> ${escapeHtml(layaway.customerName)}</p>
+                <p><strong>Teléfono:</strong> ${escapeHtml(layaway.customerPhone)}</p>
+                <p><strong>Fecha de Creación:</strong> ${formatDateTime(layaway.date)}</p>
+            </div>
+            
+            <div class="section">
+                <h3>🛍️ Productos Apartados</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Producto</th>
+                            <th style="text-align: center;">Cantidad</th>
+                            <th style="text-align: right;">Precio Unitario</th>
+                            <th style="text-align: right;">Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${productsHTML}
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="section">
+                <h3>💵 Historial de Abonos</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Método de Pago</th>
+                            <th style="text-align: right;">Monto</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${paymentsHTML}
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="totals">
+                <div class="totals-row">
+                    <span>Total del Apartado:</span>
+                    <span>${formatCurrency(layaway.total)}</span>
+                </div>
+                <div class="totals-row">
+                    <span>Total Abonado:</span>
+                    <span style="color: #10B981;">${formatCurrency(layaway.totalPaid)}</span>
+                </div>
+                <div class="totals-row final">
+                    <span>Saldo Pendiente:</span>
+                    <span class="pending-amount">${formatCurrency(layaway.pendingAmount)}</span>
+                </div>
+            </div>
+            
+            <div class="footer">
+                <p>${state.settings.ticketFooter || '¡Gracias por elegir Gracia Divina!'}</p>
+                <p style="margin-top: 10px;">Documento generado el ${formatDateTime(new Date().toISOString())}</p>
+            </div>
+            
+            <div class="no-print" style="margin-top: 30px; text-align: center;">
+                <button onclick="window.print()" style="
+                    background: #8B5CF6; 
+                    color: white; 
+                    border: none; 
+                    padding: 15px 30px; 
+                    font-size: 16px; 
+                    border-radius: 8px; 
+                    cursor: pointer;
+                    margin-right: 10px;
+                ">🖨️ Imprimir / Guardar PDF</button>
+                <button onclick="window.close()" style="
+                    background: #6B7280; 
+                    color: white; 
+                    border: none; 
+                    padding: 15px 30px; 
+                    font-size: 16px; 
+                    border-radius: 8px; 
+                    cursor: pointer;
+                ">Cerrar</button>
+            </div>
+        </body>
+        </html>
+    `);
+    
+    printWindow.document.close();
+    
+    showToast('PDF generado - Usa "Guardar como PDF" en el diálogo de impresión', 'info');
 }
 
 // ========================================
