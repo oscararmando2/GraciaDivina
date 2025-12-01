@@ -148,9 +148,14 @@ function deleteFromLocal(collection, firebaseKey) {
                 db.getAllProducts().then(function(products) {
                     var product = products.find(function(p) { return p.firebaseKey === firebaseKey; });
                     if (product && product.id) {
-                        db.deleteProduct(product.id);
-                        console.log('Producto eliminado localmente:', product.name);
+                        db.deleteProduct(product.id).then(function() {
+                            console.log('Producto eliminado localmente:', product.name);
+                        }).catch(function(err) {
+                            console.error('Error eliminando producto localmente:', err);
+                        });
                     }
+                }).catch(function(err) {
+                    console.error('Error obteniendo productos para eliminación:', err);
                 });
                 break;
             case 'layaways':
@@ -159,20 +164,36 @@ function deleteFromLocal(collection, firebaseKey) {
                     if (layaway && layaway.id) {
                         // Solo eliminar si está pendiente (no completado)
                         if (layaway.status === 'pending') {
-                            var store = db.getStore('layaways', 'readwrite');
-                            store.delete(layaway.id);
-                            console.log('Apartado eliminado localmente:', layaway.customerName);
+                            try {
+                                var store = db.getStore('layaways', 'readwrite');
+                                var request = store.delete(layaway.id);
+                                request.onsuccess = function() {
+                                    console.log('Apartado eliminado localmente:', layaway.customerName);
+                                };
+                                request.onerror = function() {
+                                    console.error('Error eliminando apartado localmente:', request.error);
+                                };
+                            } catch (storeErr) {
+                                console.error('Error accediendo al store de apartados:', storeErr);
+                            }
                         }
                     }
+                }).catch(function(err) {
+                    console.error('Error obteniendo apartados para eliminación:', err);
                 });
                 break;
             case 'owners':
                 db.getAllOwners().then(function(owners) {
                     var owner = owners.find(function(o) { return o.firebaseKey === firebaseKey; });
                     if (owner && owner.id) {
-                        db.deleteOwner(owner.id);
-                        console.log('Dueña eliminada localmente:', owner.name);
+                        db.deleteOwner(owner.id).then(function() {
+                            console.log('Dueña eliminada localmente:', owner.name);
+                        }).catch(function(err) {
+                            console.error('Error eliminando dueña localmente:', err);
+                        });
                     }
+                }).catch(function(err) {
+                    console.error('Error obteniendo dueñas para eliminación:', err);
                 });
                 break;
             // sales y settings no se eliminan remotamente
@@ -219,7 +240,9 @@ function saveToLocal(collection, firebaseKey, data) {
                             // Actualizar el registro local con firebaseKey para futuras sincronizaciones
                             if (!p.firebaseKey) {
                                 p.firebaseKey = firebaseKey;
-                                db.updateProduct(p);
+                                db.updateProduct(p).catch(function(err) {
+                                    console.error('Error actualizando firebaseKey del producto:', err);
+                                });
                             }
                             return true;
                         }
@@ -228,15 +251,21 @@ function saveToLocal(collection, firebaseKey, data) {
                             // Actualizar el registro local con firebaseKey para futuras sincronizaciones
                             if (!p.firebaseKey) {
                                 p.firebaseKey = firebaseKey;
-                                db.updateProduct(p);
+                                db.updateProduct(p).catch(function(err) {
+                                    console.error('Error actualizando firebaseKey del producto:', err);
+                                });
                             }
                             return true;
                         }
                         return false;
                     });
                     if (!exists) {
-                        db.addProduct(record);
+                        db.addProduct(record).catch(function(err) {
+                            console.error('Error agregando producto desde Firebase:', err);
+                        });
                     }
+                }).catch(function(err) {
+                    console.error('Error obteniendo productos para sincronización:', err);
                 });
                 break;
             case 'sales':
@@ -270,9 +299,21 @@ function saveToLocal(collection, firebaseKey, data) {
                         return false;
                     });
                     if (!exists) {
-                        var store = db.getStore('layaways', 'readwrite');
-                        store.add(record);
+                        try {
+                            var store = db.getStore('layaways', 'readwrite');
+                            var request = store.add(record);
+                            request.onsuccess = function() {
+                                console.log('Apartado agregado desde Firebase');
+                            };
+                            request.onerror = function() {
+                                console.error('Error agregando apartado:', request.error);
+                            };
+                        } catch (storeErr) {
+                            console.error('Error accediendo al store de apartados:', storeErr);
+                        }
                     }
+                }).catch(function(err) {
+                    console.error('Error obteniendo apartados para sincronización:', err);
                 });
                 break;
             case 'owners':
@@ -280,14 +321,20 @@ function saveToLocal(collection, firebaseKey, data) {
                     db.getAllOwners().then(function(owners) {
                         var exists = owners.find(function(o) { return o.name === data.name; });
                         if (!exists) {
-                            db.addOwner(data.name);
+                            db.addOwner(data.name).catch(function(err) {
+                                console.error('Error agregando dueña:', err);
+                            });
                         }
+                    }).catch(function(err) {
+                        console.error('Error obteniendo dueñas para sincronización:', err);
                     });
                 }
                 break;
             case 'settings':
                 if (data.value !== undefined) {
-                    db.saveSetting(firebaseKey, data.value);
+                    db.saveSetting(firebaseKey, data.value).catch(function(err) {
+                        console.error('Error guardando configuración:', err);
+                    });
                 }
                 break;
         }
