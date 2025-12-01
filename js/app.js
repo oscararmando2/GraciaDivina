@@ -1758,6 +1758,12 @@ function exportLayawayPDF() {
     // Create PDF content using a new window for printing
     const printWindow = window.open('', '_blank');
     
+    // Check if popup was blocked
+    if (!printWindow || printWindow.closed || typeof printWindow.closed === 'undefined') {
+        showToast('Por favor, permite las ventanas emergentes para exportar el PDF', 'warning');
+        return;
+    }
+    
     // Generate payments history HTML
     const paymentsHTML = layaway.payments.map(payment => `
         <tr>
