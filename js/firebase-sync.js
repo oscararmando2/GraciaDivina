@@ -37,6 +37,9 @@ var firebaseAuth = null;
 var isLoggedIn = false;
 var syncInterval = null;
 
+// Mapa para rastrear operaciones de guardado pendientes y prevenir duplicados
+var pendingSaveOperations = {};
+
 // Inicializar Firebase
 function initFirebase() {
     try {
@@ -276,6 +279,14 @@ function saveToLocal(collection, firebaseKey, data) {
                 // Se crean localmente y se sincronizan hacia arriba
                 break;
             case 'layaways':
+                // Prevenir operaciones duplicadas concurrentes usando un lock
+                var operationKey = 'layaway_' + firebaseKey;
+                if (pendingSaveOperations[operationKey]) {
+                    console.log('Operación de guardado de apartado ya en progreso para:', firebaseKey);
+                    return;
+                }
+                pendingSaveOperations[operationKey] = true;
+                
                 db.getAllLayaways().then(function(layaways) {
                     // Verificar si el apartado ya existe por firebaseKey O por info del cliente y fecha
                     var exists = layaways.find(function(l) { 
@@ -292,8 +303,10 @@ function saveToLocal(collection, firebaseKey, data) {
                                 if (!isNaN(localDate.getTime()) && !isNaN(remoteDate.getTime())) {
                                     if (localDate.toDateString() === remoteDate.toDateString()) {
                                         // Actualizar el registro local con firebaseKey para futuras sincronizaciones
-                                        l.firebaseKey = firebaseKey;
-                                        db.updateLayaway(l);
+                                        if (!l.firebaseKey) {
+                                            l.firebaseKey = firebaseKey;
+                                            db.updateLayaway(l);
+                                        }
                                         return true;
                                     }
                                 }
@@ -307,16 +320,22 @@ function saveToLocal(collection, firebaseKey, data) {
                             var request = store.add(record);
                             request.onsuccess = function() {
                                 console.log('Apartado agregado desde Firebase');
+                                delete pendingSaveOperations[operationKey];
                             };
                             request.onerror = function() {
                                 console.error('Error agregando apartado:', request.error);
+                                delete pendingSaveOperations[operationKey];
                             };
                         } catch (storeErr) {
                             console.error('Error accediendo al store de apartados:', storeErr);
+                            delete pendingSaveOperations[operationKey];
                         }
+                    } else {
+                        delete pendingSaveOperations[operationKey];
                     }
                 }).catch(function(err) {
                     console.error('Error obteniendo apartados para sincronización:', err);
+                    delete pendingSaveOperations[operationKey];
                 });
                 break;
             case 'owners':
