@@ -1513,13 +1513,16 @@ function deduplicateLayaways(layaways) {
         // Crear clave única basada en firebaseKey o en datos del cliente
         let uniqueKey;
         if (layaway.firebaseKey) {
+            // Usar firebaseKey como identificador principal
             uniqueKey = `fb_${layaway.firebaseKey}`;
+        } else if (layaway.customerName && layaway.customerPhone && layaway.date) {
+            // Solo deduplicar si tenemos datos completos
+            const dateStr = new Date(layaway.date).toISOString();
+            uniqueKey = `local_${layaway.customerName}_${layaway.customerPhone}_${dateStr}`;
         } else {
-            // Usar nombre, teléfono y fecha como identificador único con valores por defecto
-            const name = layaway.customerName || 'unknown';
-            const phone = layaway.customerPhone || 'no-phone';
-            const dateStr = layaway.date ? new Date(layaway.date).toISOString() : 'no-date';
-            uniqueKey = `${name}_${phone}_${dateStr}`;
+            // Si faltan datos, usar el ID local para mantener el registro
+            // Esto evita eliminar registros válidos con datos incompletos
+            uniqueKey = `id_${layaway.id}`;
         }
         
         if (!seen.has(uniqueKey)) {
