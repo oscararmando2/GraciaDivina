@@ -1504,12 +1504,8 @@ async function createLayaway() {
     }
 }
 
-async function loadLayaways() {
-    let layaways = await db.getAllLayaways();
-    
-    // Filtrar duplicados defensivamente basándose en identificadores únicos
-    // Un apartado es duplicado si tiene el mismo firebaseKey O 
-    // (mismo nombre de cliente, teléfono y fecha exacta)
+// Helper function to remove duplicate layaways
+function deduplicateLayaways(layaways) {
     const uniqueLayaways = [];
     const seen = new Set();
     
@@ -1519,20 +1515,29 @@ async function loadLayaways() {
         if (layaway.firebaseKey) {
             uniqueKey = `fb_${layaway.firebaseKey}`;
         } else {
-            // Usar nombre, teléfono y fecha como identificador único
+            // Usar nombre, teléfono y fecha como identificador único con valores por defecto
+            const name = layaway.customerName || 'unknown';
+            const phone = layaway.customerPhone || 'no-phone';
             const dateStr = layaway.date ? new Date(layaway.date).toISOString() : 'no-date';
-            uniqueKey = `${layaway.customerName}_${layaway.customerPhone}_${dateStr}`;
+            uniqueKey = `${name}_${phone}_${dateStr}`;
         }
         
         if (!seen.has(uniqueKey)) {
             seen.add(uniqueKey);
             uniqueLayaways.push(layaway);
         } else {
-            console.warn('Apartado duplicado detectado y omitido:', layaway.customerName);
+            console.warn('Apartado duplicado detectado y omitido:', layaway.customerName || 'Unknown');
         }
     }
     
-    layaways = uniqueLayaways;
+    return uniqueLayaways;
+}
+
+async function loadLayaways() {
+    let layaways = await db.getAllLayaways();
+    
+    // Filtrar duplicados defensivamente
+    layaways = deduplicateLayaways(layaways);
     const pending = layaways.filter(l => l.status === 'pending');
     const completed = layaways.filter(l => l.status === 'completed');
     
@@ -1588,25 +1593,7 @@ async function searchLayaways() {
     let layaways = await db.searchLayaways(query);
     
     // Aplicar el mismo filtro de deduplicación
-    const uniqueLayaways = [];
-    const seen = new Set();
-    
-    for (const layaway of layaways) {
-        let uniqueKey;
-        if (layaway.firebaseKey) {
-            uniqueKey = `fb_${layaway.firebaseKey}`;
-        } else {
-            const dateStr = layaway.date ? new Date(layaway.date).toISOString() : 'no-date';
-            uniqueKey = `${layaway.customerName}_${layaway.customerPhone}_${dateStr}`;
-        }
-        
-        if (!seen.has(uniqueKey)) {
-            seen.add(uniqueKey);
-            uniqueLayaways.push(layaway);
-        }
-    }
-    
-    layaways = uniqueLayaways;
+    layaways = deduplicateLayaways(layaways);
     const container = document.getElementById('layaways-list');
     
     if (layaways.length === 0) {
