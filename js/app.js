@@ -1504,8 +1504,43 @@ async function createLayaway() {
     }
 }
 
+// Helper function to remove duplicate layaways
+function deduplicateLayaways(layaways) {
+    const uniqueLayaways = [];
+    const seen = new Set();
+    
+    for (const layaway of layaways) {
+        // Crear clave única basada en firebaseKey o en datos del cliente
+        let uniqueKey;
+        if (layaway.firebaseKey) {
+            // Usar firebaseKey como identificador principal
+            uniqueKey = `fb_${layaway.firebaseKey}`;
+        } else if (layaway.customerName && layaway.customerPhone && layaway.date) {
+            // Solo deduplicar si tenemos datos completos
+            const dateStr = new Date(layaway.date).toISOString();
+            uniqueKey = `local_${layaway.customerName}_${layaway.customerPhone}_${dateStr}`;
+        } else {
+            // Si faltan datos, usar el ID local para mantener el registro
+            // Esto evita eliminar registros válidos con datos incompletos
+            uniqueKey = `id_${layaway.id}`;
+        }
+        
+        if (!seen.has(uniqueKey)) {
+            seen.add(uniqueKey);
+            uniqueLayaways.push(layaway);
+        } else {
+            console.warn('Apartado duplicado detectado y omitido:', layaway.customerName || 'Unknown');
+        }
+    }
+    
+    return uniqueLayaways;
+}
+
 async function loadLayaways() {
-    const layaways = await db.getAllLayaways();
+    let layaways = await db.getAllLayaways();
+    
+    // Filtrar duplicados defensivamente
+    layaways = deduplicateLayaways(layaways);
     const pending = layaways.filter(l => l.status === 'pending');
     const completed = layaways.filter(l => l.status === 'completed');
     
@@ -1558,7 +1593,10 @@ async function searchLayaways() {
         return;
     }
     
-    const layaways = await db.searchLayaways(query);
+    let layaways = await db.searchLayaways(query);
+    
+    // Aplicar el mismo filtro de deduplicación
+    layaways = deduplicateLayaways(layaways);
     const container = document.getElementById('layaways-list');
     
     if (layaways.length === 0) {
