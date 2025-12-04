@@ -206,6 +206,9 @@ function initializeUI() {
     document.getElementById('complete-layaway-btn').addEventListener('click', completeLayaway);
     document.getElementById('delete-layaway-btn').addEventListener('click', deleteLayaway);
     document.getElementById('export-layaway-pdf').addEventListener('click', exportLayawayPDF);
+    document.getElementById('add-products-to-layaway').addEventListener('click', openAddProductsToLayawayModal);
+    document.getElementById('add-another-product-btn').addEventListener('click', addAnotherProductToLayaway);
+    document.getElementById('confirm-add-products-layaway').addEventListener('click', confirmAddProductsToLayaway);
     
     // Manual Layaway
     document.getElementById('btn-add-manual-layaway').addEventListener('click', openManualLayawayModal);
@@ -1699,6 +1702,7 @@ async function viewLayawayDetails(layawayId) {
     `;
     
     // Update buttons
+    document.getElementById('add-products-to-layaway').style.display = layaway.status === 'pending' ? '' : 'none';
     document.getElementById('add-layaway-payment').style.display = layaway.status === 'pending' ? '' : 'none';
     document.getElementById('complete-layaway-btn').disabled = layaway.pendingAmount > 0;
     document.getElementById('complete-layaway-btn').style.display = layaway.status === 'pending' ? '' : 'none';
@@ -2274,6 +2278,163 @@ async function createManualLayaway() {
 }
 
 // ========================================
+// ADD PRODUCTS TO EXISTING LAYAWAY
+// ========================================
+let addProductsCounter = 0;
+let addProductsTotal = 0;
+
+function openAddProductsToLayawayModal() {
+    if (!state.currentLayaway) return;
+    
+    // Reset the form
+    document.getElementById('add-products-layaway-container').innerHTML = '';
+    addProductsCounter = 0;
+    addProductsTotal = 0;
+    
+    // Display current layaway total
+    document.getElementById('current-layaway-total').textContent = formatCurrency(state.currentLayaway.total);
+    document.getElementById('new-products-total').textContent = '$0.00';
+    document.getElementById('updated-layaway-total').textContent = formatCurrency(state.currentLayaway.total);
+    
+    // Add first product row
+    addAnotherProductToLayaway();
+    
+    openModal('add-products-layaway-modal');
+}
+
+function addAnotherProductToLayaway() {
+    const container = document.getElementById('add-products-layaway-container');
+    const rowId = ++addProductsCounter;
+    
+    const row = document.createElement('div');
+    row.className = 'manual-product-row';
+    row.dataset.rowId = rowId;
+    row.innerHTML = `
+        <div class="form-row" style="align-items: flex-end; gap: 10px; margin-bottom: 15px; padding: 15px; background: #f9f9f9; border-radius: 8px;">
+            <div class="form-group" style="flex: 2; margin: 0;">
+                <label>Nombre del Producto *</label>
+                <input type="text" class="form-input add-product-name" required placeholder="Nombre del producto">
+            </div>
+            <div class="form-group" style="flex: 1; margin: 0;">
+                <label>Código/UPC</label>
+                <input type="text" class="form-input add-product-upc" placeholder="Código o UPC">
+            </div>
+            <div class="form-group" style="flex: 1; margin: 0;">
+                <label>Precio *</label>
+                <input type="number" class="form-input add-product-price" required min="0" step="0.01" placeholder="0.00">
+            </div>
+            <div class="form-group" style="flex: 0 0 80px; margin: 0;">
+                <label>Cantidad *</label>
+                <input type="number" class="form-input add-product-quantity" required min="1" value="1" placeholder="1">
+            </div>
+            <button type="button" class="btn-icon delete" onclick="removeAddProductRow(${rowId})" title="Eliminar" style="align-self: center; margin-bottom: 0;">🗑️</button>
+        </div>
+    `;
+    
+    container.appendChild(row);
+    
+    // Add event listeners to update total
+    row.querySelectorAll('input').forEach(input => {
+        input.addEventListener('input', updateAddProductsTotal);
+    });
+}
+
+function removeAddProductRow(rowId) {
+    const row = document.querySelector(`[data-row-id="${rowId}"]`);
+    if (row) {
+        row.remove();
+        updateAddProductsTotal();
+    }
+}
+
+function updateAddProductsTotal() {
+    const rows = document.querySelectorAll('#add-products-layaway-container .manual-product-row');
+    addProductsTotal = 0;
+    
+    rows.forEach(row => {
+        const price = parseFloat(row.querySelector('.add-product-price').value) || 0;
+        const quantity = parseInt(row.querySelector('.add-product-quantity').value) || 0;
+        addProductsTotal += price * quantity;
+    });
+    
+    document.getElementById('new-products-total').textContent = formatCurrency(addProductsTotal);
+    
+    const currentTotal = state.currentLayaway ? state.currentLayaway.total : 0;
+    const updatedTotal = currentTotal + addProductsTotal;
+    document.getElementById('updated-layaway-total').textContent = formatCurrency(updatedTotal);
+}
+
+async function confirmAddProductsToLayaway() {
+    if (!state.currentLayaway) return;
+    
+    // Get all products
+    const rows = document.querySelectorAll('#add-products-layaway-container .manual-product-row');
+    const newItems = [];
+    let hasEmptyFields = false;
+    
+    rows.forEach(row => {
+        const name = row.querySelector('.add-product-name').value.trim();
+        const upc = row.querySelector('.add-product-upc').value.trim();
+        const price = parseFloat(row.querySelector('.add-product-price').value) || 0;
+        const quantity = parseInt(row.querySelector('.add-product-quantity').value) || 0;
+        
+        if (!name || price <= 0 || quantity <= 0) {
+            hasEmptyFields = true;
+            return;
+        }
+        
+        newItems.push({
+            productId: null, // Manual products don't have a productId
+            name: name,
+            upc: upc || '',
+            cost: 0, // Manual products don't track cost
+            price: price,
+            quantity: quantity,
+            subtotal: price * quantity,
+            costSubtotal: 0,
+            profit: 0,
+            owner: '',
+            isManual: true
+        });
+    });
+    
+    if (hasEmptyFields) {
+        showToast('Completa todos los campos de productos', 'warning');
+        return;
+    }
+    
+    if (newItems.length === 0) {
+        showToast('Agrega al menos un producto', 'warning');
+        return;
+    }
+    
+    try {
+        const updatedLayaway = await db.addProductsToLayaway(state.currentLayaway.id, newItems);
+        
+        // Sync to Firebase for cross-device synchronization
+        if (typeof firebaseSync !== 'undefined' && firebaseSync.isUserAuthenticated() && updatedLayaway) {
+            try {
+                await firebaseSync.uploadSingle('layaways', updatedLayaway);
+            } catch (syncError) {
+                console.warn('Firebase sync failed, products added locally:', syncError);
+            }
+        }
+        
+        closeAllModals();
+        await loadLayaways();
+        await updateLayawayBadge();
+        
+        // Reopen layaway details with updated info
+        await viewLayawayDetails(state.currentLayaway.id);
+        
+        showToast('Productos agregados al apartado exitosamente', 'success');
+    } catch (error) {
+        console.error('Error adding products to layaway:', error);
+        showToast('Error al agregar productos al apartado', 'error');
+    }
+}
+
+// ========================================
 // REPORTS (CIERRE DE CAJA)
 // ========================================
 async function generateReport() {
@@ -2578,3 +2739,4 @@ window.viewLayawayDetails = viewLayawayDetails;
 window.deleteOwner = deleteOwner;
 window.openWhatsApp = openWhatsApp;
 window.removeManualProductRow = removeManualProductRow;
+window.removeAddProductRow = removeAddProductRow;
