@@ -781,11 +781,56 @@
                 <button class="btn btn-info" id="export-layaway-pdf">
                     <span>📄</span> Exportar PDF
                 </button>
+                <button class="btn btn-primary" id="add-products-to-layaway">
+                    <span>➕</span> Agregar Productos
+                </button>
                 <button class="btn btn-primary" id="add-layaway-payment">
                     <span>💵</span> Agregar Abono
                 </button>
                 <button class="btn btn-success" id="complete-layaway-btn" disabled>
                     <span>✓</span> Liquidar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Products to Layaway Modal -->
+    <div id="add-products-layaway-modal" class="modal">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h3>Agregar Productos al Apartado</h3>
+                <button class="modal-close" data-close-modal>&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="add-products-layaway-form">
+                    <h4>Productos a Agregar</h4>
+                    <div id="add-products-layaway-container">
+                        <!-- Products will be added here -->
+                    </div>
+                    <button class="btn btn-secondary" id="add-another-product-btn" style="margin-top: 10px;">
+                        <span>➕</span> Agregar Otro Producto
+                    </button>
+                    
+                    <div class="checkout-totals" style="margin-top: 20px;">
+                        <div class="checkout-row">
+                            <span>Total Actual:</span>
+                            <span id="current-layaway-total">$0.00</span>
+                        </div>
+                        <div class="checkout-row">
+                            <span>Nuevos Productos:</span>
+                            <span id="new-products-total">$0.00</span>
+                        </div>
+                        <div class="checkout-row total">
+                            <span>Nuevo Total:</span>
+                            <span id="updated-layaway-total">$0.00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-close-modal>Cancelar</button>
+                <button class="btn btn-primary btn-lg" id="confirm-add-products-layaway">
+                    <span>✓</span> Confirmar
                 </button>
             </div>
         </div>

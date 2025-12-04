@@ -394,6 +394,41 @@ class Database {
     }
 
     /**
+     * Add products to an existing layaway
+     */
+    async addProductsToLayaway(layawayId, newItems) {
+        const layaway = await this.getLayaway(layawayId);
+        if (!layaway) return null;
+
+        // Add new items to existing items
+        layaway.items.push(...newItems);
+
+        // Recalculate totals
+        const newSubtotal = layaway.items.reduce((sum, item) => sum + item.subtotal, 0);
+        const newTotalCost = layaway.items.reduce((sum, item) => sum + (item.costSubtotal || 0), 0);
+        const newTotalProfit = newSubtotal - newTotalCost;
+
+        layaway.subtotal = newSubtotal;
+        layaway.total = newSubtotal;
+        layaway.totalCost = newTotalCost;
+        layaway.totalProfit = newTotalProfit;
+        layaway.pendingAmount = layaway.total - layaway.totalPaid;
+
+        // Update stock for new products
+        for (const item of newItems) {
+            if (item.productId) {
+                const product = await this.getProduct(item.productId);
+                if (product) {
+                    product.stock -= item.quantity;
+                    await this.updateProduct(product);
+                }
+            }
+        }
+
+        return this.updateLayaway(layaway);
+    }
+
+    /**
      * Add payment to layaway
      */
     async addLayawayPayment(layawayId, amount, paymentMethod) {
