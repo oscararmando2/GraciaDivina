@@ -251,9 +251,11 @@ class Database {
             const request = store.add(sale);
             
             request.onsuccess = async () => {
-                // Update stock for each item
+                // Update stock for each item (skip manual products without productId)
                 for (const item of sale.items) {
-                    await this.updateStock(item.productId, -item.quantity);
+                    if (item.productId) {
+                        await this.updateStock(item.productId, -item.quantity);
+                    }
                 }
                 resolve({ ...sale, id: request.result });
             };
@@ -351,9 +353,11 @@ class Database {
             const request = store.add(layaway);
             
             request.onsuccess = async () => {
-                // Update stock for each item
+                // Update stock for each item (skip manual products without productId)
                 for (const item of layaway.items) {
-                    await this.updateStock(item.productId, -item.quantity);
+                    if (item.productId) {
+                        await this.updateStock(item.productId, -item.quantity);
+                    }
                 }
                 resolve({ ...layaway, id: request.result });
             };
@@ -452,9 +456,11 @@ class Database {
             throw new Error('No se puede eliminar un apartado completado');
         }
 
-        // Restore stock for each item
+        // Restore stock for each item (skip manual products without productId)
         for (const item of layaway.items) {
-            await this.updateStock(item.productId, item.quantity);
+            if (item.productId) {
+                await this.updateStock(item.productId, item.quantity);
+            }
         }
 
         // Delete the layaway record

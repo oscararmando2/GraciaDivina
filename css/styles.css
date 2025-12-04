@@ -3645,3 +3645,49 @@ h4 { font-size: 1.125rem; }
 .sync-status-indicator.syncing .sync-icon {
     animation: syncRotate 1s linear infinite;
 }
+
+/* ========================================
+   Layaways Header Actions
+   ======================================== */
+.layaways-header-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-lg);
+    flex: 1;
+}
+
+.layaways-header-actions .search-container {
+    flex: 1;
+    max-width: 400px;
+}
+
+/* Manual Layaway Product Rows */
+.manual-product-row {
+    position: relative;
+}
+
+.manual-product-row .form-row {
+    display: flex;
+    gap: 10px;
+}
+
+@media (max-width: 768px) {
+    .layaways-header-actions {
+        flex-direction: column;
+        align-items: stretch;
+        gap: var(--spacing-md);
+    }
+    
+    .layaways-header-actions .search-container {
+        max-width: none;
+    }
+    
+    .manual-product-row .form-row {
+        flex-direction: column;
+    }
+    
+    .manual-product-row .form-row > * {
+        flex: 1 !important;
+        max-width: none !important;
+    }
+}
