@@ -3084,69 +3084,116 @@ h4 { font-size: 1.125rem; }
     
     #page-layaways .page-header {
         flex-direction: column;
-        gap: var(--spacing-md);
+        gap: var(--spacing-sm);
         align-items: stretch;
-        margin-bottom: var(--spacing-md);
+        margin-bottom: var(--spacing-lg);
     }
     
     #page-layaways .page-header h2 {
-        font-size: 1.25rem;
+        font-size: 1.5rem;
         text-align: center;
+        margin-bottom: var(--spacing-xs);
+        font-weight: 600;
+    }
+    
+    /* Header actions wrapper - improved layout */
+    #page-layaways .layaways-header-actions {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-sm);
+        width: 100%;
     }
     
     #page-layaways .search-container {
         max-width: 100%;
+        width: 100%;
     }
     
     #page-layaways .search-input {
         padding: var(--spacing-md);
         padding-left: 2.75rem;
-        font-size: 1rem;
+        font-size: 0.9375rem;
         border-radius: var(--radius-lg);
         background: var(--white);
         box-shadow: var(--shadow-sm);
+        border: 1px solid var(--gray-200);
     }
     
-    /* Layaway summary cards */
+    /* Make the "Nuevo Apartado Manual" button more compact and user-friendly */
+    #page-layaways .btn-add-manual-layaway,
+    #btn-add-manual-layaway {
+        width: 100%;
+        padding: var(--spacing-md);
+        font-size: 0.9375rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--spacing-xs);
+        border-radius: var(--radius-lg);
+        font-weight: 500;
+    }
+    
+    #page-layaways .btn-add-manual-layaway span:first-child,
+    #btn-add-manual-layaway span:first-child {
+        font-size: 1.125rem;
+    }
+    
+    /* Layaway summary cards - improved mobile layout */
     .layaways-summary-cards {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
-        gap: var(--spacing-sm);
-        margin-bottom: var(--spacing-md);
+        gap: var(--spacing-md);
+        margin-bottom: var(--spacing-lg);
     }
     
     .layaways-summary-cards .summary-card {
-        padding: var(--spacing-md);
+        padding: var(--spacing-lg);
         flex-direction: column;
         text-align: center;
         gap: var(--spacing-sm);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        border-radius: var(--radius-xl);
     }
     
     .layaways-summary-cards .card-icon {
-        width: 48px;
-        height: 48px;
-        font-size: 1.25rem;
+        width: 56px;
+        height: 56px;
+        font-size: 1.5rem;
         margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
     
     .layaways-summary-cards .card-label {
-        font-size: 0.75rem;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        color: var(--gray-600);
+        line-height: 1.4;
     }
     
     .layaways-summary-cards .card-value {
-        font-size: 1.125rem;
+        font-size: 1.375rem;
+        font-weight: 700;
     }
     
     /* Layaway cards - mobile improvements */
     .layaways-list {
-        gap: var(--spacing-sm);
+        gap: var(--spacing-md);
     }
     
     .layaway-card {
         grid-template-columns: 1fr;
-        padding: var(--spacing-md);
+        padding: var(--spacing-lg);
         gap: var(--spacing-md);
         border-left: 4px solid var(--primary);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        border-radius: var(--radius-lg);
+    }
+    
+    .layaway-card:active {
+        transform: scale(0.98);
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
     }
     
     .layaway-card.pending {
@@ -3161,33 +3208,80 @@ h4 { font-size: 1.125rem; }
         text-align: left;
     }
     
+    /* Customer name and status - improved layout */
     .layaway-info h4 {
-        font-size: 1rem;
-        flex-wrap: wrap;
+        font-size: 1.0625rem;
+        font-weight: 600;
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-xs);
+        margin-bottom: var(--spacing-sm);
+        line-height: 1.4;
     }
     
+    /* Customer name should wrap nicely */
+    .layaway-info h4 .layaway-customer-name {
+        display: block;
+        word-break: break-word;
+        overflow-wrap: break-word;
+    }
+    
+    /* Status badge on its own line */
+    .layaway-info h4 .layaway-status {
+        display: inline-block;
+        align-self: flex-start;
+        margin-top: var(--spacing-xs);
+    }
+    
+    /* Info paragraphs with better spacing */
     .layaway-info p {
-        font-size: 0.8125rem;
+        font-size: 0.875rem;
+        line-height: 1.6;
+        margin-bottom: var(--spacing-xs);
+        color: var(--gray-600);
     }
     
+    .layaway-info p:last-child {
+        margin-bottom: 0;
+    }
+    
+    /* Amounts section with improved layout */
     .layaway-amounts {
         display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding-top: var(--spacing-sm);
-        border-top: 1px solid var(--gray-100);
+        flex-direction: column;
+        gap: var(--spacing-sm);
+        padding-top: var(--spacing-md);
+        border-top: 2px solid var(--gray-100);
         text-align: left;
     }
     
+    /* Total amount - more prominent */
     .layaway-total {
-        font-size: 1.125rem;
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--gray-900);
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-xs);
     }
     
+    .layaway-total::before {
+        content: "💰";
+        font-size: 1.25rem;
+    }
+    
+    /* Pending amount - better visual treatment */
     .layaway-pending-amount {
-        font-size: 0.875rem;
-        background: rgba(245, 158, 11, 0.1);
-        padding: var(--spacing-xs) var(--spacing-sm);
-        border-radius: var(--radius-full);
+        font-size: 0.9375rem;
+        font-weight: 600;
+        background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(245, 158, 11, 0.08) 100%);
+        color: #d97706;
+        padding: var(--spacing-sm) var(--spacing-md);
+        border-radius: var(--radius-lg);
+        display: inline-flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+        border: 1px solid rgba(245, 158, 11, 0.2);
     }
     
     /* ========================================

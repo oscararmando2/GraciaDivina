@@ -1572,7 +1572,7 @@ async function loadLayaways() {
         <div class="layaway-card ${layaway.status}" onclick="viewLayawayDetails(${layaway.id})">
             <div class="layaway-info">
                 <h4>
-                    ${escapeHtml(layaway.customerName)}
+                    <span class="layaway-customer-name">${escapeHtml(layaway.customerName)}</span>
                     <span class="layaway-status ${layaway.status}">
                         ${layaway.status === 'pending' ? 'Pendiente' : 'Completado'}
                     </span>
@@ -1619,7 +1619,7 @@ async function searchLayaways() {
         <div class="layaway-card ${layaway.status}" onclick="viewLayawayDetails(${layaway.id})">
             <div class="layaway-info">
                 <h4>
-                    ${escapeHtml(layaway.customerName)}
+                    <span class="layaway-customer-name">${escapeHtml(layaway.customerName)}</span>
                     <span class="layaway-status ${layaway.status}">
                         ${layaway.status === 'pending' ? 'Pendiente' : 'Completado'}
                     </span>
