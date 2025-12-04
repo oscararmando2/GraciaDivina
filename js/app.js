@@ -2152,24 +2152,25 @@ function removeManualProductRow(rowId) {
     }
 }
 
+let manualLayawayTotal = 0;
+
 function updateManualLayawayTotal() {
     const rows = document.querySelectorAll('.manual-product-row');
-    let total = 0;
+    manualLayawayTotal = 0;
     
     rows.forEach(row => {
         const price = parseFloat(row.querySelector('.manual-product-price').value) || 0;
         const quantity = parseInt(row.querySelector('.manual-product-quantity').value) || 0;
-        total += price * quantity;
+        manualLayawayTotal += price * quantity;
     });
     
-    document.getElementById('manual-layaway-total').textContent = formatCurrency(total);
+    document.getElementById('manual-layaway-total').textContent = formatCurrency(manualLayawayTotal);
     updateManualLayawayPending();
 }
 
 function updateManualLayawayPending() {
-    const total = parseFloat(document.getElementById('manual-layaway-total').textContent.replace(/[^0-9.-]+/g, ''));
     const initial = parseFloat(document.getElementById('manual-layaway-initial-payment').value) || 0;
-    const pending = Math.max(0, total - initial);
+    const pending = Math.max(0, manualLayawayTotal - initial);
     document.getElementById('manual-layaway-pending').textContent = formatCurrency(pending);
 }
 
