@@ -207,6 +207,12 @@ function initializeUI() {
     document.getElementById('delete-layaway-btn').addEventListener('click', deleteLayaway);
     document.getElementById('export-layaway-pdf').addEventListener('click', exportLayawayPDF);
     
+    // Manual Layaway
+    document.getElementById('btn-add-manual-layaway').addEventListener('click', openManualLayawayModal);
+    document.getElementById('add-manual-product-btn').addEventListener('click', addManualProductRow);
+    document.getElementById('manual-layaway-initial-payment').addEventListener('input', updateManualLayawayPending);
+    document.getElementById('create-manual-layaway').addEventListener('click', createManualLayaway);
+    
     // Sales page
     document.getElementById('filter-sales').addEventListener('click', filterSales);
     document.getElementById('print-ticket').addEventListener('click', printTicket);
@@ -1651,7 +1657,10 @@ async function viewLayawayDetails(layawayId) {
             <div class="checkout-items">
                 ${layaway.items.map(item => `
                     <div class="checkout-item">
-                        <span class="checkout-item-name">${escapeHtml(item.name)}</span>
+                        <div style="flex: 1;">
+                            <div class="checkout-item-name">${escapeHtml(item.name)}</div>
+                            ${item.isManual && item.upc ? `<small style="color: #666;">UPC: ${escapeHtml(item.upc)}</small>` : ''}
+                        </div>
                         <span class="checkout-item-qty">x${item.quantity}</span>
                         <span>${formatCurrency(item.subtotal)}</span>
                     </div>
@@ -1856,7 +1865,10 @@ function exportLayawayPDF() {
     // Generate products HTML
     const productsHTML = layaway.items.map(item => `
         <tr>
-            <td style="padding: 8px; border-bottom: 1px solid #ddd;">${escapeHtml(item.name)}</td>
+            <td style="padding: 8px; border-bottom: 1px solid #ddd;">
+                ${escapeHtml(item.name)}
+                ${item.isManual && item.upc ? `<br><small style="color: #666;">UPC: ${escapeHtml(item.upc)}</small>` : ''}
+            </td>
             <td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: center;">${item.quantity}</td>
             <td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: right;">${formatCurrency(item.price)}</td>
             <td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: right;">${formatCurrency(item.subtotal)}</td>
@@ -2072,6 +2084,192 @@ function exportLayawayPDF() {
     printWindow.document.close();
     
     showToast('PDF generado - Usa "Guardar como PDF" en el diálogo de impresión', 'info');
+}
+
+// ========================================
+// MANUAL LAYAWAY SYSTEM
+// ========================================
+let manualProductCounter = 0;
+
+function openManualLayawayModal() {
+    // Reset the form
+    document.getElementById('manual-layaway-customer-name').value = '';
+    document.getElementById('manual-layaway-customer-phone').value = '';
+    document.getElementById('manual-layaway-initial-payment').value = '';
+    document.getElementById('manual-layaway-products').innerHTML = '';
+    document.getElementById('manual-layaway-total').textContent = '$0.00';
+    document.getElementById('manual-layaway-pending').textContent = '$0.00';
+    manualProductCounter = 0;
+    
+    // Add first product row
+    addManualProductRow();
+    
+    openModal('manual-layaway-modal');
+}
+
+function addManualProductRow() {
+    const container = document.getElementById('manual-layaway-products');
+    const rowId = ++manualProductCounter;
+    
+    const row = document.createElement('div');
+    row.className = 'manual-product-row';
+    row.dataset.rowId = rowId;
+    row.innerHTML = `
+        <div class="form-row" style="align-items: flex-end; gap: 10px; margin-bottom: 15px; padding: 15px; background: #f9f9f9; border-radius: 8px;">
+            <div class="form-group" style="flex: 2; margin: 0;">
+                <label>Nombre del Producto *</label>
+                <input type="text" class="form-input manual-product-name" required placeholder="Nombre del producto">
+            </div>
+            <div class="form-group" style="flex: 1; margin: 0;">
+                <label>Código/UPC</label>
+                <input type="text" class="form-input manual-product-upc" placeholder="Código o UPC">
+            </div>
+            <div class="form-group" style="flex: 1; margin: 0;">
+                <label>Precio *</label>
+                <input type="number" class="form-input manual-product-price" required min="0" step="0.01" placeholder="0.00">
+            </div>
+            <div class="form-group" style="flex: 0 0 80px; margin: 0;">
+                <label>Cantidad *</label>
+                <input type="number" class="form-input manual-product-quantity" required min="1" value="1" placeholder="1">
+            </div>
+            <button type="button" class="btn-icon delete" onclick="removeManualProductRow(${rowId})" title="Eliminar" style="align-self: center; margin-bottom: 0;">🗑️</button>
+        </div>
+    `;
+    
+    container.appendChild(row);
+    
+    // Add event listeners to update total
+    row.querySelectorAll('input').forEach(input => {
+        input.addEventListener('input', updateManualLayawayTotal);
+    });
+}
+
+function removeManualProductRow(rowId) {
+    const row = document.querySelector(`[data-row-id="${rowId}"]`);
+    if (row) {
+        row.remove();
+        updateManualLayawayTotal();
+    }
+}
+
+function updateManualLayawayTotal() {
+    const rows = document.querySelectorAll('.manual-product-row');
+    let total = 0;
+    
+    rows.forEach(row => {
+        const price = parseFloat(row.querySelector('.manual-product-price').value) || 0;
+        const quantity = parseInt(row.querySelector('.manual-product-quantity').value) || 0;
+        total += price * quantity;
+    });
+    
+    document.getElementById('manual-layaway-total').textContent = formatCurrency(total);
+    updateManualLayawayPending();
+}
+
+function updateManualLayawayPending() {
+    const total = parseFloat(document.getElementById('manual-layaway-total').textContent.replace(/[^0-9.-]+/g, ''));
+    const initial = parseFloat(document.getElementById('manual-layaway-initial-payment').value) || 0;
+    const pending = Math.max(0, total - initial);
+    document.getElementById('manual-layaway-pending').textContent = formatCurrency(pending);
+}
+
+async function createManualLayaway() {
+    const customerName = document.getElementById('manual-layaway-customer-name').value.trim();
+    const customerPhone = document.getElementById('manual-layaway-customer-phone').value.trim();
+    const initialPayment = parseFloat(document.getElementById('manual-layaway-initial-payment').value) || 0;
+    
+    if (!customerName || !customerPhone) {
+        showToast('Completa nombre y teléfono', 'warning');
+        return;
+    }
+    
+    // Get all products
+    const rows = document.querySelectorAll('.manual-product-row');
+    const items = [];
+    let hasEmptyFields = false;
+    
+    rows.forEach(row => {
+        const name = row.querySelector('.manual-product-name').value.trim();
+        const upc = row.querySelector('.manual-product-upc').value.trim();
+        const price = parseFloat(row.querySelector('.manual-product-price').value) || 0;
+        const quantity = parseInt(row.querySelector('.manual-product-quantity').value) || 0;
+        
+        if (!name || price <= 0 || quantity <= 0) {
+            hasEmptyFields = true;
+            return;
+        }
+        
+        items.push({
+            productId: null, // Manual products don't have a productId
+            name: name,
+            upc: upc || '',
+            cost: 0, // Manual products don't track cost
+            price: price,
+            quantity: quantity,
+            subtotal: price * quantity,
+            costSubtotal: 0,
+            profit: 0,
+            owner: '',
+            isManual: true
+        });
+    });
+    
+    if (hasEmptyFields) {
+        showToast('Completa todos los campos de productos', 'warning');
+        return;
+    }
+    
+    if (items.length === 0) {
+        showToast('Agrega al menos un producto', 'warning');
+        return;
+    }
+    
+    if (initialPayment <= 0) {
+        showToast('Ingresa un monto inicial', 'warning');
+        return;
+    }
+    
+    const total = items.reduce((sum, item) => sum + item.subtotal, 0);
+    
+    const layaway = {
+        customerName,
+        customerPhone,
+        items,
+        subtotal: total,
+        total,
+        totalCost: 0,
+        totalProfit: 0,
+        totalPaid: initialPayment,
+        pendingAmount: total - initialPayment,
+        payments: [{
+            amount: initialPayment,
+            paymentMethod: 'efectivo',
+            date: new Date().toISOString()
+        }],
+        isManual: true // Mark as manual layaway
+    };
+    
+    try {
+        const savedLayaway = await db.addLayaway(layaway);
+        
+        // Sync to Firebase for cross-device synchronization
+        if (typeof firebaseSync !== 'undefined' && firebaseSync.isUserAuthenticated()) {
+            try {
+                await firebaseSync.uploadSingle('layaways', savedLayaway);
+            } catch (syncError) {
+                console.warn('Firebase sync failed, layaway saved locally:', syncError);
+            }
+        }
+        
+        closeAllModals();
+        await loadLayaways();
+        await updateLayawayBadge();
+        
+        showToast('Apartado manual creado exitosamente', 'success');
+    } catch (error) {
+        console.error('Error creating manual layaway:', error);
+        showToast('Error al crear apartado manual', 'error');
+    }
 }
 
 // ========================================
@@ -2378,3 +2576,4 @@ window.viewSaleDetails = viewSaleDetails;
 window.viewLayawayDetails = viewLayawayDetails;
 window.deleteOwner = deleteOwner;
 window.openWhatsApp = openWhatsApp;
+window.removeManualProductRow = removeManualProductRow;
