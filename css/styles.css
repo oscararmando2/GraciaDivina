@@ -2918,11 +2918,14 @@ h4 { font-size: 1.125rem; }
     }
     
     /* Ensure visible pages (Ventas, Reportes, Apartados) are properly styled */
+    /* Using !important here is intentional to override the default .page { display: none } */
     #page-sales.active,
     #page-reports.active,
     #page-layaways.active {
         display: flex !important;
-        flex-direction: column;
+        flex-direction: column !important;
+        visibility: visible !important;
+        opacity: 1 !important;
     }
     
     /* ========================================
