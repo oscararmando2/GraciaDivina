@@ -1577,63 +1577,168 @@ function deduplicateLayaways(layaways) {
 }
 
 async function loadLayaways() {
-    console.log('Cargando apartados...');
-    let layaways = await db.getAllLayaways();
-    console.log('Total de apartados en base de datos:', layaways.length);
-    
-    // Filtrar duplicados defensivamente
-    layaways = deduplicateLayaways(layaways);
-    console.log('Apartados después de deduplicar:', layaways.length);
-    
-    const pending = layaways.filter(l => l.status === 'pending');
-    const completed = layaways.filter(l => l.status === 'completed');
-    
-    // Update summary
-    const pendingAmount = pending.reduce((sum, l) => sum + l.pendingAmount, 0);
-    document.getElementById('pending-layaways-count').textContent = pending.length;
-    document.getElementById('pending-layaways-amount').textContent = formatCurrency(pendingAmount);
-    
-    // Render list
-    const container = document.getElementById('layaways-list');
-    
-    if (layaways.length === 0) {
-        console.log('No hay apartados para mostrar');
-        container.innerHTML = `
-            <div class="cart-empty" style="padding: 60px;">
-                <span class="empty-icon">📋</span>
-                <p>No hay apartados registrados</p>
-                <small style="margin-top: 10px; display: block; color: #666;">
-                    Si tienes apartados en Firebase, espera a que se sincronicen.<br>
-                    Ejecuta <code>diagnosticoFirebase()</code> en la consola para verificar la conexión.
-                </small>
-            </div>
-        `;
-        return;
+    try {
+        console.log('Cargando apartados...');
+        
+        // Cargar datos localmente desde IndexedDB
+        let layaways = await db.getAllLayaways();
+        console.log('Total de apartados en base de datos:', layaways.length);
+        
+        // Validar y aplicar valores seguros por defecto
+        layaways = layaways.map(layaway => {
+            // Asegurar que items sea un array válido
+            const items = Array.isArray(layaway.items) ? layaway.items : [];
+            
+            // Validar cada item con valores seguros por defecto
+            const safeItems = items.map(item => ({
+                ...item,
+                name: item?.name || 'Producto sin nombre',
+                upc: item?.upc || '',
+                quantity: item?.quantity || 1,
+                price: item?.price || 0,
+                subtotal: item?.subtotal || 0
+            }));
+            
+            // Asegurar que payments sea un array válido
+            const payments = Array.isArray(layaway.payments) ? layaway.payments : [];
+            
+            // Calcular total y pendiente de manera segura
+            const total = typeof layaway.total === 'number' ? layaway.total : 
+                         safeItems.reduce((sum, item) => sum + (item.subtotal || 0), 0);
+            
+            const totalPaid = typeof layaway.totalPaid === 'number' ? layaway.totalPaid :
+                            payments.reduce((sum, p) => sum + (p?.amount || 0), 0);
+            
+            const pendingAmount = typeof layaway.pendingAmount === 'number' ? layaway.pendingAmount :
+                                Math.max(0, total - totalPaid);
+            
+            return {
+                ...layaway,
+                customerName: layaway.customerName || 'Cliente sin nombre',
+                customerPhone: layaway.customerPhone || 'Sin teléfono',
+                date: layaway.date || new Date().toISOString(),
+                status: layaway.status || 'pending',
+                items: safeItems,
+                payments: payments,
+                total: total,
+                totalPaid: totalPaid,
+                pendingAmount: pendingAmount
+            };
+        });
+        
+        // Filtrar duplicados defensivamente
+        layaways = deduplicateLayaways(layaways);
+        console.log('Apartados después de deduplicar:', layaways.length);
+        
+        // Filtrar por estado
+        const pending = layaways.filter(l => l.status === 'pending');
+        const completed = layaways.filter(l => l.status === 'completed');
+        
+        // Actualizar resumen con valores seguros
+        const pendingAmount = pending.reduce((sum, l) => sum + (l.pendingAmount || 0), 0);
+        document.getElementById('pending-layaways-count').textContent = pending.length;
+        document.getElementById('pending-layaways-amount').textContent = formatCurrency(pendingAmount);
+        
+        // Obtener contenedor
+        const container = document.getElementById('layaways-list');
+        
+        // Mostrar mensaje amigable si no hay apartados
+        if (layaways.length === 0) {
+            console.log('No hay apartados para mostrar');
+            container.innerHTML = `
+                <div class="cart-empty" style="padding: 60px;">
+                    <span class="empty-icon">📋</span>
+                    <p>No hay apartados pendientes</p>
+                    <small style="margin-top: 10px; display: block; color: #666;">
+                        Puedes crear un nuevo apartado desde el punto de venta o usando el botón "Nuevo Apartado Manual"
+                    </small>
+                </div>
+            `;
+            // Actualizar contador de badge
+            await updateLayawayBadge();
+            return;
+        }
+        
+        console.log('Mostrando', layaways.length, 'apartados en la interfaz');
+        
+        // Renderizar lista con protecciones adicionales
+        container.innerHTML = layaways.map(layaway => {
+            // Protecciones adicionales en el template
+            const customerName = escapeHtml(layaway.customerName || 'Sin nombre');
+            const customerPhone = escapeHtml(layaway.customerPhone || 'Sin teléfono');
+            const itemCount = Array.isArray(layaway.items) ? layaway.items.length : 0;
+            const status = layaway.status || 'pending';
+            const statusText = status === 'pending' ? 'Pendiente' : 'Completado';
+            const total = typeof layaway.total === 'number' ? layaway.total : 0;
+            const pendingAmount = typeof layaway.pendingAmount === 'number' ? layaway.pendingAmount : 0;
+            
+            // Formatear fecha en español
+            let dateFormatted = '';
+            try {
+                const date = new Date(layaway.date);
+                if (!isNaN(date.getTime())) {
+                    dateFormatted = date.toLocaleDateString("es-ES", {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                } else {
+                    dateFormatted = 'Fecha no disponible';
+                }
+            } catch (e) {
+                dateFormatted = 'Fecha no disponible';
+            }
+            
+            return `
+                <div class="layaway-card ${status}" onclick="viewLayawayDetails(${layaway.id})">
+                    <div class="layaway-info">
+                        <h4>
+                            <span class="layaway-customer-name">${customerName}</span>
+                            <span class="layaway-status ${status}">
+                                ${statusText}
+                            </span>
+                        </h4>
+                        <p>📞 ${customerPhone}</p>
+                        <p>📅 ${dateFormatted}</p>
+                        <p>${itemCount} producto(s)</p>
+                    </div>
+                    <div class="layaway-amounts">
+                        <div class="layaway-total">${formatCurrency(total)}</div>
+                        ${status === 'pending' 
+                            ? `<div class="layaway-pending-amount">Pendiente: ${formatCurrency(pendingAmount)}</div>` 
+                            : ''}
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        // Actualizar contador de badge al final
+        await updateLayawayBadge();
+        
+    } catch (error) {
+        console.error('Error al cargar apartados:', error);
+        
+        // Mostrar mensaje de error en la interfaz
+        const container = document.getElementById('layaways-list');
+        if (container) {
+            container.innerHTML = `
+                <div class="cart-empty" style="padding: 60px;">
+                    <span class="empty-icon" style="font-size: 3rem;">⚠️</span>
+                    <p style="color: #EF4444; font-weight: 600;">Error al cargar apartados</p>
+                    <small style="margin-top: 10px; display: block; color: #666;">
+                        Por favor, recarga la página. Si el problema persiste, contacta con soporte.
+                    </small>
+                </div>
+            `;
+        }
+        
+        // Mostrar notificación de error
+        if (typeof showToast === 'function') {
+            showToast('Error al cargar apartados', 'error');
+        }
     }
-    
-    console.log('Mostrando', layaways.length, 'apartados en la interfaz');
-    
-    container.innerHTML = layaways.map(layaway => `
-        <div class="layaway-card ${layaway.status}" onclick="viewLayawayDetails(${layaway.id})">
-            <div class="layaway-info">
-                <h4>
-                    <span class="layaway-customer-name">${escapeHtml(layaway.customerName)}</span>
-                    <span class="layaway-status ${layaway.status}">
-                        ${layaway.status === 'pending' ? 'Pendiente' : 'Completado'}
-                    </span>
-                </h4>
-                <p>📞 ${escapeHtml(layaway.customerPhone)}</p>
-                <p>📅 ${formatDateTime(layaway.date)}</p>
-                <p>${layaway.items.length} producto(s)</p>
-            </div>
-            <div class="layaway-amounts">
-                <div class="layaway-total">${formatCurrency(layaway.total)}</div>
-                ${layaway.status === 'pending' 
-                    ? `<div class="layaway-pending-amount">Pendiente: ${formatCurrency(layaway.pendingAmount)}</div>` 
-                    : ''}
-            </div>
-        </div>
-    `).join('');
 }
 
 async function searchLayaways() {
