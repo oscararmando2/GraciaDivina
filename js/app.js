@@ -1590,6 +1590,8 @@ async function loadLayaways() {
             const items = Array.isArray(layaway.items) ? layaway.items : [];
             
             // Validar cada item con valores seguros por defecto
+            // Nota: Usamos || para name (reemplaza strings vacíos con default)
+            // y ?? para valores numéricos (preserva ceros legítimos)
             const safeItems = items.map(item => ({
                 ...item,
                 name: item?.name || 'Producto sin nombre',
@@ -1612,6 +1614,8 @@ async function loadLayaways() {
             const pendingAmount = typeof layaway.pendingAmount === 'number' ? layaway.pendingAmount :
                                 Math.max(0, total - totalPaid);
             
+            // Nota: Usamos || para strings de texto (reemplaza vacíos con defaults amigables)
+            // y ?? para cálculos numéricos (preserva ceros válidos)
             return {
                 ...layaway,
                 customerName: layaway.customerName || 'Cliente sin nombre',
