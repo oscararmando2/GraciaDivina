@@ -2918,18 +2918,9 @@ h4 { font-size: 1.125rem; }
     }
     
     /* Ensure visible pages (Ventas, Reportes, Apartados) are properly styled */
+    /* Using !important here is intentional to override the default .page { display: none } */
     #page-sales.active,
     #page-reports.active,
-    #page-layaways.active {
-        display: flex !important;
-        flex-direction: column;
-    }
-    
-    /* Additional specificity to ensure Apartados page is never hidden on mobile */
-    #page-layaways {
-        /* Override any conflicting rules */
-    }
-    
     #page-layaways.active {
         display: flex !important;
         flex-direction: column !important;
