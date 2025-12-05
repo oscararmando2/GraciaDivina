@@ -1629,6 +1629,7 @@ async function searchLayaways() {
                 </h4>
                 <p>📞 ${escapeHtml(layaway.customerPhone)}</p>
                 <p>📅 ${formatDateTime(layaway.date)}</p>
+                <p>${layaway.items.length} producto(s)</p>
             </div>
             <div class="layaway-amounts">
                 <div class="layaway-total">${formatCurrency(layaway.total)}</div>
