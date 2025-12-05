@@ -1593,10 +1593,10 @@ async function loadLayaways() {
             const safeItems = items.map(item => ({
                 ...item,
                 name: item?.name || 'Producto sin nombre',
-                upc: item?.upc || '',
-                quantity: item?.quantity || 1,
-                price: item?.price || 0,
-                subtotal: item?.subtotal || 0
+                upc: item?.upc ?? '',
+                quantity: item?.quantity ?? 1,
+                price: item?.price ?? 0,
+                subtotal: item?.subtotal ?? 0
             }));
             
             // Asegurar que payments sea un array válido
@@ -1604,10 +1604,10 @@ async function loadLayaways() {
             
             // Calcular total y pendiente de manera segura
             const total = typeof layaway.total === 'number' ? layaway.total : 
-                         safeItems.reduce((sum, item) => sum + (item.subtotal || 0), 0);
+                         safeItems.reduce((sum, item) => sum + (item.subtotal ?? 0), 0);
             
             const totalPaid = typeof layaway.totalPaid === 'number' ? layaway.totalPaid :
-                            payments.reduce((sum, p) => sum + (p?.amount || 0), 0);
+                            payments.reduce((sum, p) => sum + (p?.amount ?? 0), 0);
             
             const pendingAmount = typeof layaway.pendingAmount === 'number' ? layaway.pendingAmount :
                                 Math.max(0, total - totalPaid);
@@ -1635,7 +1635,7 @@ async function loadLayaways() {
         const completed = layaways.filter(l => l.status === 'completed');
         
         // Actualizar resumen con valores seguros
-        const pendingAmount = pending.reduce((sum, l) => sum + (l.pendingAmount || 0), 0);
+        const pendingAmount = pending.reduce((sum, l) => sum + (l.pendingAmount ?? 0), 0);
         document.getElementById('pending-layaways-count').textContent = pending.length;
         document.getElementById('pending-layaways-amount').textContent = formatCurrency(pendingAmount);
         
@@ -1677,7 +1677,7 @@ async function loadLayaways() {
             try {
                 const date = new Date(layaway.date);
                 if (!isNaN(date.getTime())) {
-                    dateFormatted = date.toLocaleDateString("es-ES", {
+                    dateFormatted = date.toLocaleString("es-ES", {
                         year: 'numeric',
                         month: 'short',
                         day: 'numeric',
