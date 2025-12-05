@@ -1515,10 +1515,30 @@ async function createLayaway() {
 
 // Helper function to remove duplicate layaways
 function deduplicateLayaways(layaways) {
+    if (!layaways || layaways.length === 0) {
+        return [];
+    }
+    
     const uniqueLayaways = [];
     const seen = new Set();
     
     for (const layaway of layaways) {
+        // Validar que el apartado tiene los campos mínimos requeridos
+        if (!layaway.customerName || !layaway.customerPhone || !layaway.date) {
+            console.warn('Apartado con datos incompletos, pero se mantiene:', {
+                id: layaway.id,
+                customerName: layaway.customerName || 'sin nombre',
+                customerPhone: layaway.customerPhone || 'sin teléfono'
+            });
+            // Usar ID como clave única para apartados incompletos
+            const uniqueKey = `id_${layaway.id}`;
+            if (!seen.has(uniqueKey)) {
+                seen.add(uniqueKey);
+                uniqueLayaways.push(layaway);
+            }
+            continue;
+        }
+        
         // Crear clave única basada en firebaseKey o en datos del cliente
         let uniqueKey;
         if (layaway.firebaseKey) {
@@ -1526,8 +1546,13 @@ function deduplicateLayaways(layaways) {
             uniqueKey = `fb_${layaway.firebaseKey}`;
         } else if (layaway.customerName && layaway.customerPhone && layaway.date) {
             // Solo deduplicar si tenemos datos completos
-            const dateStr = new Date(layaway.date).toISOString();
-            uniqueKey = `local_${layaway.customerName}_${layaway.customerPhone}_${dateStr}`;
+            try {
+                const dateStr = new Date(layaway.date).toISOString();
+                uniqueKey = `local_${layaway.customerName}_${layaway.customerPhone}_${dateStr}`;
+            } catch (error) {
+                console.error('Error procesando fecha del apartado:', error);
+                uniqueKey = `id_${layaway.id}`;
+            }
         } else {
             // Si faltan datos, usar el ID local para mantener el registro
             // Esto evita eliminar registros válidos con datos incompletos
@@ -1538,18 +1563,28 @@ function deduplicateLayaways(layaways) {
             seen.add(uniqueKey);
             uniqueLayaways.push(layaway);
         } else {
-            console.warn('Apartado duplicado detectado y omitido:', layaway.customerName || 'Unknown');
+            console.warn('Apartado duplicado detectado y omitido:', {
+                customerName: layaway.customerName,
+                phone: layaway.customerPhone,
+                id: layaway.id,
+                firebaseKey: layaway.firebaseKey || 'sin key'
+            });
         }
     }
     
+    console.log(`Deduplicación: ${layaways.length} apartados → ${uniqueLayaways.length} únicos`);
     return uniqueLayaways;
 }
 
 async function loadLayaways() {
+    console.log('Cargando apartados...');
     let layaways = await db.getAllLayaways();
+    console.log('Total de apartados en base de datos:', layaways.length);
     
     // Filtrar duplicados defensivamente
     layaways = deduplicateLayaways(layaways);
+    console.log('Apartados después de deduplicar:', layaways.length);
+    
     const pending = layaways.filter(l => l.status === 'pending');
     const completed = layaways.filter(l => l.status === 'completed');
     
@@ -1562,14 +1597,21 @@ async function loadLayaways() {
     const container = document.getElementById('layaways-list');
     
     if (layaways.length === 0) {
+        console.log('No hay apartados para mostrar');
         container.innerHTML = `
             <div class="cart-empty" style="padding: 60px;">
                 <span class="empty-icon">📋</span>
                 <p>No hay apartados registrados</p>
+                <small style="margin-top: 10px; display: block; color: #666;">
+                    Si tienes apartados en Firebase, espera a que se sincronicen.<br>
+                    Ejecuta <code>diagnosticoFirebase()</code> en la consola para verificar la conexión.
+                </small>
             </div>
         `;
         return;
     }
+    
+    console.log('Mostrando', layaways.length, 'apartados en la interfaz');
     
     container.innerHTML = layaways.map(layaway => `
         <div class="layaway-card ${layaway.status}" onclick="viewLayawayDetails(${layaway.id})">
@@ -2730,7 +2772,7 @@ function openWhatsApp(event) {
     window.open(url, '_blank');
 }
 
-// Make functions available globally for inline event handlers
+// Make functions available globally for inline event handlers and Firebase sync
 window.updateCartItemQuantity = updateCartItemQuantity;
 window.removeFromCart = removeFromCart;
 window.editProduct = editProduct;
@@ -2741,3 +2783,4 @@ window.deleteOwner = deleteOwner;
 window.openWhatsApp = openWhatsApp;
 window.removeManualProductRow = removeManualProductRow;
 window.removeAddProductRow = removeAddProductRow;
+window.loadLayaways = loadLayaways; // Exposed for Firebase sync to trigger reloads
