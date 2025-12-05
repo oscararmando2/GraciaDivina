@@ -1575,12 +1575,12 @@ async function loadLayaways() {
         <div class="layaway-card ${layaway.status}" onclick="viewLayawayDetails(${layaway.id})">
             <div class="layaway-info">
                 <h4>
-                    <span class="layaway-customer-name">${escapeHtml(layaway.customerName)}</span>
+                    <span class="layaway-customer-name">${layaway.customerName ? escapeHtml(layaway.customerName) : '<em style="color: #999;">Sin nombre</em>'}</span>
                     <span class="layaway-status ${layaway.status}">
                         ${layaway.status === 'pending' ? 'Pendiente' : 'Completado'}
                     </span>
                 </h4>
-                <p>📞 ${escapeHtml(layaway.customerPhone)}</p>
+                <p>📞 ${layaway.customerPhone ? escapeHtml(layaway.customerPhone) : '<em style="color: #999;">Sin teléfono</em>'}</p>
                 <p>📅 ${formatDateTime(layaway.date)}</p>
                 <p>${layaway.items.length} producto(s)</p>
             </div>
@@ -1622,12 +1622,12 @@ async function searchLayaways() {
         <div class="layaway-card ${layaway.status}" onclick="viewLayawayDetails(${layaway.id})">
             <div class="layaway-info">
                 <h4>
-                    <span class="layaway-customer-name">${escapeHtml(layaway.customerName)}</span>
+                    <span class="layaway-customer-name">${layaway.customerName ? escapeHtml(layaway.customerName) : '<em style="color: #999;">Sin nombre</em>'}</span>
                     <span class="layaway-status ${layaway.status}">
                         ${layaway.status === 'pending' ? 'Pendiente' : 'Completado'}
                     </span>
                 </h4>
-                <p>📞 ${escapeHtml(layaway.customerPhone)}</p>
+                <p>📞 ${layaway.customerPhone ? escapeHtml(layaway.customerPhone) : '<em style="color: #999;">Sin teléfono</em>'}</p>
                 <p>📅 ${formatDateTime(layaway.date)}</p>
                 <p>${layaway.items.length} producto(s)</p>
             </div>
@@ -1651,8 +1651,8 @@ async function viewLayawayDetails(layawayId) {
     content.innerHTML = `
         <div class="layaway-detail-section">
             <h4>👤 Cliente</h4>
-            <p><strong>${escapeHtml(layaway.customerName)}</strong></p>
-            <p>📞 ${escapeHtml(layaway.customerPhone)}</p>
+            <p><strong>${layaway.customerName ? escapeHtml(layaway.customerName) : '<em style="color: #999;">Sin nombre</em>'}</strong></p>
+            <p>📞 ${layaway.customerPhone ? escapeHtml(layaway.customerPhone) : '<em style="color: #999;">Sin teléfono</em>'}</p>
             <p>📅 Creado: ${formatDateTime(layaway.date)}</p>
         </div>
         
