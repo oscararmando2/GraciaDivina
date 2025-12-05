@@ -2925,6 +2925,18 @@ h4 { font-size: 1.125rem; }
         flex-direction: column;
     }
     
+    /* Additional specificity to ensure Apartados page is never hidden on mobile */
+    #page-layaways {
+        /* Override any conflicting rules */
+    }
+    
+    #page-layaways.active {
+        display: flex !important;
+        flex-direction: column !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+    
     /* ========================================
        Sales History Page - Mobile Improvements
        ======================================== */
