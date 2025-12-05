@@ -44,7 +44,9 @@ var pendingSaveOperations = {};
 function initFirebase() {
     try {
         if (typeof firebase === 'undefined') {
-            console.warn('Firebase SDK no disponible');
+            console.warn('Firebase SDK no disponible - Los datos solo estarán disponibles localmente');
+            updateConnectionStatus('offline', 'Sin conexión a la nube');
+            showFirebaseWarning();
             return false;
         }
 
@@ -57,27 +59,79 @@ function initFirebase() {
         firebaseDb = firebase.database();
         firebaseAuth = firebase.auth();
 
-        console.log('Firebase inicializado');
+        console.log('Firebase inicializado correctamente');
         return true;
     } catch (e) {
         console.error('Error inicializando Firebase:', e);
+        updateConnectionStatus('offline', 'Error de conexión');
+        showFirebaseWarning();
         return false;
+    }
+}
+
+// Mostrar advertencia cuando Firebase no está disponible
+function showFirebaseWarning() {
+    var warningBanner = document.createElement('div');
+    warningBanner.id = 'firebase-warning-banner';
+    warningBanner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:10000;' +
+        'background:linear-gradient(135deg,#f59e0b 0%,#d97706 100%);' +
+        'color:white;padding:12px 20px;text-align:center;' +
+        'box-shadow:0 2px 10px rgba(0,0,0,0.2);font-size:14px;' +
+        'display:flex;align-items:center;justify-content:center;gap:10px;';
+    
+    warningBanner.innerHTML = '⚠️ <span>Sincronización en la nube no disponible. Los datos solo se guardan localmente.</span> ' +
+        '<button id="retry-firebase-btn" style="background:white;color:#d97706;border:none;' +
+        'padding:6px 12px;border-radius:4px;cursor:pointer;font-weight:600;">Reintentar</button>';
+    
+    document.body.appendChild(warningBanner);
+    
+    // Handler para reintentar conexión
+    document.getElementById('retry-firebase-btn').onclick = function() {
+        location.reload();
+    };
+}
+
+// Actualizar el estado de conexión en la UI
+function updateConnectionStatus(status, message) {
+    var statusElement = document.getElementById('connection-status');
+    if (statusElement) {
+        var statusDot = statusElement.querySelector('.status-dot');
+        var statusText = statusElement.querySelector('.status-text');
+        
+        if (statusDot) {
+            statusDot.className = 'status-dot ' + status;
+        }
+        
+        if (statusText) {
+            statusText.textContent = message || (status === 'online' ? 'En línea' : 'Sin conexión');
+        }
     }
 }
 
 // Login automático
 function autoLogin() {
-    if (!firebaseAuth) return;
+    if (!firebaseAuth) {
+        console.warn('Firebase Auth no disponible - no se puede iniciar sesión');
+        return;
+    }
 
     firebaseAuth.signInWithEmailAndPassword(autoEmail, autoPassword)
         .then(function(userCredential) {
             isLoggedIn = true;
-            console.log('Login exitoso:', userCredential.user.email);
+            console.log('Login exitoso - Sincronización activa:', userCredential.user.email);
+            updateConnectionStatus('online', 'Conectado a la nube');
+            // Ocultar banner de advertencia si existe
+            var warningBanner = document.getElementById('firebase-warning-banner');
+            if (warningBanner) {
+                warningBanner.style.display = 'none';
+            }
             setupRealtimeListeners();
             startAutoSync();
         })
         .catch(function(error) {
-            console.error('Error en login:', error.message);
+            console.error('Error en login a Firebase:', error.message);
+            updateConnectionStatus('offline', 'Error de autenticación');
+            showFirebaseWarning();
         });
 }
 
@@ -287,7 +341,11 @@ function saveToLocal(collection, firebaseKey, data) {
                 }
                 pendingSaveOperations[operationKey] = true;
                 
+                console.log('Sincronizando apartado desde Firebase:', firebaseKey, record.customerName);
+                
                 db.getAllLayaways().then(function(layaways) {
+                    console.log('Total de apartados locales antes de sincronizar:', layaways.length);
+                    
                     // Verificar si el apartado ya existe por firebaseKey O por info del cliente y fecha
                     var exists = layaways.find(function(l) { 
                         // Verificar por firebaseKey primero
@@ -304,6 +362,7 @@ function saveToLocal(collection, firebaseKey, data) {
                                     if (localDate.toDateString() === remoteDate.toDateString()) {
                                         // Actualizar el registro local con firebaseKey para futuras sincronizaciones
                                         if (!l.firebaseKey) {
+                                            console.log('Vinculando apartado existente con Firebase key:', firebaseKey);
                                             l.firebaseKey = firebaseKey;
                                             db.updateLayaway(l);
                                         }
@@ -319,22 +378,27 @@ function saveToLocal(collection, firebaseKey, data) {
                             var store = db.getStore('layaways', 'readwrite');
                             var request = store.add(record);
                             request.onsuccess = function() {
-                                console.log('Apartado agregado desde Firebase');
+                                console.log('✓ Apartado agregado desde Firebase:', record.customerName, '- ID:', request.result);
                                 delete pendingSaveOperations[operationKey];
+                                // Recargar la lista de apartados si estamos en esa página
+                                if (window.loadLayaways && typeof window.loadLayaways === 'function') {
+                                    window.loadLayaways();
+                                }
                             };
                             request.onerror = function() {
-                                console.error('Error agregando apartado:', request.error);
+                                console.error('✗ Error agregando apartado:', request.error);
                                 delete pendingSaveOperations[operationKey];
                             };
                         } catch (storeErr) {
-                            console.error('Error accediendo al store de apartados:', storeErr);
+                            console.error('✗ Error accediendo al store de apartados:', storeErr);
                             delete pendingSaveOperations[operationKey];
                         }
                     } else {
+                        console.log('Apartado ya existe localmente, no se duplica');
                         delete pendingSaveOperations[operationKey];
                     }
                 }).catch(function(err) {
-                    console.error('Error obteniendo apartados para sincronización:', err);
+                    console.error('✗ Error obteniendo apartados para sincronización:', err);
                     delete pendingSaveOperations[operationKey];
                 });
                 break;
@@ -577,3 +641,61 @@ var firebaseSync = {
 };
 
 window.firebaseSync = firebaseSync;
+
+// Función de diagnóstico para ayudar a depurar problemas de sincronización
+window.diagnosticoFirebase = function() {
+    console.log('=== DIAGNÓSTICO DE FIREBASE ===');
+    console.log('Firebase SDK disponible:', typeof firebase !== 'undefined');
+    console.log('Firebase App inicializado:', firebaseApp !== null);
+    console.log('Firebase Database disponible:', firebaseDb !== null);
+    console.log('Firebase Auth disponible:', firebaseAuth !== null);
+    console.log('Usuario autenticado:', isLoggedIn);
+    console.log('Email configurado:', autoEmail);
+    console.log('Ruta raíz en Firebase:', rootPath);
+    
+    if (isLoggedIn && firebaseDb) {
+        console.log('Intentando leer apartados de Firebase...');
+        firebaseDb.ref(rootPath + '/apartados').once('value')
+            .then(function(snapshot) {
+                var data = snapshot.val();
+                if (data) {
+                    var count = Object.keys(data).length;
+                    console.log('✓ Apartados encontrados en Firebase:', count);
+                    console.log('Datos:', data);
+                } else {
+                    console.log('⚠ No hay apartados en Firebase');
+                }
+            })
+            .catch(function(error) {
+                console.error('✗ Error leyendo de Firebase:', error);
+            });
+    } else {
+        console.log('⚠ No se puede leer de Firebase (no autenticado o no inicializado)');
+    }
+    
+    // Verificar datos locales
+    if (db && db.isReady) {
+        db.getAllLayaways().then(function(layaways) {
+            console.log('✓ Apartados locales en IndexedDB:', layaways.length);
+            if (layaways.length > 0) {
+                console.log('Detalles de apartados locales:', layaways.map(function(l) {
+                    return {
+                        id: l.id,
+                        cliente: l.customerName,
+                        telefono: l.customerPhone,
+                        total: l.total,
+                        estado: l.status,
+                        firebaseKey: l.firebaseKey || 'sin key'
+                    };
+                }));
+            }
+        }).catch(function(err) {
+            console.error('✗ Error leyendo IndexedDB:', err);
+        });
+    } else {
+        console.log('⚠ IndexedDB no está lista');
+    }
+    
+    console.log('=== FIN DEL DIAGNÓSTICO ===');
+    console.log('Para ejecutar este diagnóstico nuevamente, escribe: diagnosticoFirebase()');
+};
