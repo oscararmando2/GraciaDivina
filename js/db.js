@@ -350,6 +350,12 @@ class Database {
             layaway.status = 'pending'; // pending, completed, cancelled
             layaway.payments = layaway.payments || [];
             
+            // CRITICAL: Recalculate totals from payments array to ensure consistency
+            const payments = Array.isArray(layaway.payments) ? layaway.payments : [];
+            layaway.totalPaid = payments.reduce((sum, p) => sum + (p?.amount || 0), 0);
+            const total = typeof layaway.total === 'number' ? layaway.total : 0;
+            layaway.pendingAmount = Math.max(0, total - layaway.totalPaid);
+            
             const request = store.add(layaway);
             
             request.onsuccess = async () => {
@@ -385,6 +391,13 @@ class Database {
         return new Promise((resolve, reject) => {
             const store = this.getStore('layaways', 'readwrite');
             layaway.updatedAt = new Date().toISOString();
+            
+            // CRITICAL: Recalculate totals from payments array to ensure consistency
+            // This prevents synchronization issues across devices
+            const payments = Array.isArray(layaway.payments) ? layaway.payments : [];
+            layaway.totalPaid = payments.reduce((sum, p) => sum + (p?.amount || 0), 0);
+            const total = typeof layaway.total === 'number' ? layaway.total : 0;
+            layaway.pendingAmount = Math.max(0, total - layaway.totalPaid);
             
             const request = store.put(layaway);
             

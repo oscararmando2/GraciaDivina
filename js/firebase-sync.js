@@ -69,6 +69,34 @@ function isMobileViewport() {
     return window.innerWidth <= 768;
 }
 
+/**
+ * Recalculate layaway totals from payments array
+ * This ensures consistency across all devices
+ */
+function recalculateLayawayTotals(layaway) {
+    if (!layaway) return layaway;
+    
+    // Ensure payments is a valid array
+    var payments = Array.isArray(layaway.payments) ? layaway.payments : [];
+    
+    // Calculate totalPaid from the payments array
+    var totalPaid = payments.reduce(function(sum, p) {
+        return sum + (typeof p.amount === 'number' ? p.amount : 0);
+    }, 0);
+    
+    // Ensure total is a valid number
+    var total = typeof layaway.total === 'number' ? layaway.total : 0;
+    
+    // Calculate pending amount
+    var pendingAmount = Math.max(0, total - totalPaid);
+    
+    // Update the layaway object
+    layaway.totalPaid = totalPaid;
+    layaway.pendingAmount = pendingAmount;
+    
+    return layaway;
+}
+
 // Inicializar Firebase
 function initFirebase() {
     try {
@@ -380,6 +408,10 @@ function saveToLocal(collection, firebaseKey, data) {
                 pendingSaveOperations[operationKey] = true;
                 
                 console.log('Sincronizando apartado desde Firebase:', firebaseKey, record.customerName);
+                
+                // CRITICAL: Recalculate totals from payments array before syncing
+                // This ensures consistency across all devices
+                record = recalculateLayawayTotals(record);
                 
                 db.getAllLayaways().then(function(layaways) {
                     console.log('Total de apartados locales antes de sincronizar:', layaways.length);
