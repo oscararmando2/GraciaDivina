@@ -73,11 +73,16 @@ function initFirebase() {
 function showFirebaseWarning() {
     var warningBanner = document.createElement('div');
     warningBanner.id = 'firebase-warning-banner';
-    warningBanner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:10000;' +
+    // Check if we're on mobile to position below mobile header
+    var isMobile = window.innerWidth <= 768;
+    var topPosition = isMobile ? '56px' : '0';
+    
+    warningBanner.style.cssText = 'position:fixed;top:' + topPosition + ';left:0;right:0;z-index:10000;' +
         'background:linear-gradient(135deg,#f59e0b 0%,#d97706 100%);' +
         'color:white;padding:12px 20px;text-align:center;' +
         'box-shadow:0 2px 10px rgba(0,0,0,0.2);font-size:14px;' +
-        'display:flex;align-items:center;justify-content:center;gap:10px;';
+        'display:flex;align-items:center;justify-content:center;gap:10px;' +
+        'flex-wrap:wrap;';
     
     warningBanner.innerHTML = '⚠️ <span>Sincronización en la nube no disponible. Los datos solo se guardan localmente.</span> ' +
         '<button id="retry-firebase-btn" style="background:white;color:#d97706;border:none;' +
@@ -89,6 +94,12 @@ function showFirebaseWarning() {
     document.getElementById('retry-firebase-btn').onclick = function() {
         location.reload();
     };
+    
+    // Update position on window resize
+    window.addEventListener('resize', function() {
+        var isMobile = window.innerWidth <= 768;
+        warningBanner.style.top = isMobile ? '56px' : '0';
+    });
 }
 
 // Actualizar el estado de conexión en la UI

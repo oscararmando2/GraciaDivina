@@ -1511,6 +1511,8 @@ h4 { font-size: 1.125rem; }
     .sidebar {
         transform: translateX(-100%);
         width: 280px;
+        /* Increase z-index to appear above Firebase warning banner on mobile */
+        z-index: 10002;
     }
     
     .sidebar.open {
@@ -2800,7 +2802,8 @@ h4 { font-size: 1.125rem; }
     height: calc(56px + env(safe-area-inset-top));
     background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
     color: var(--white);
-    z-index: 150;
+    /* Increased z-index to appear above Firebase warning banner (10000) */
+    z-index: 10001;
     padding-left: max(var(--spacing-md), env(safe-area-inset-left));
     padding-right: max(var(--spacing-md), env(safe-area-inset-right));
     align-items: center;
