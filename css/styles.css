@@ -1511,6 +1511,8 @@ h4 { font-size: 1.125rem; }
     .sidebar {
         transform: translateX(-100%);
         width: 280px;
+        /* Increase z-index to appear above Firebase warning banner on mobile */
+        z-index: 10002;
     }
     
     .sidebar.open {
@@ -2795,10 +2797,15 @@ h4 { font-size: 1.125rem; }
     left: 0;
     right: 0;
     height: 56px;
+    /* Add safe-area-inset for devices with notch (iPhone 14 Pro, etc.) */
+    padding-top: env(safe-area-inset-top);
+    height: calc(56px + env(safe-area-inset-top));
     background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
     color: var(--white);
-    z-index: 150;
-    padding: 0 var(--spacing-md);
+    /* Increased z-index to appear above Firebase warning banner (10000) */
+    z-index: 10001;
+    padding-left: max(var(--spacing-md), env(safe-area-inset-left));
+    padding-right: max(var(--spacing-md), env(safe-area-inset-right));
     align-items: center;
     justify-content: space-between;
     box-shadow: var(--shadow-md);
@@ -2887,9 +2894,9 @@ h4 { font-size: 1.125rem; }
         display: block;
     }
     
-    /* Adjust main content for mobile header */
+    /* Adjust main content for mobile header including safe area */
     .main-content {
-        padding-top: 56px;
+        padding-top: calc(56px + env(safe-area-inset-top));
     }
     
     /* Hide the sidebar toggle in sidebar header since we have mobile header */
