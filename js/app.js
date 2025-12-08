@@ -1112,10 +1112,15 @@ async function updateSalesSummary() {
     // Calculate profit for today
     const todayProfit = todaySales.reduce((sum, sale) => sum + (sale.totalProfit || 0), 0);
     
+    // Calculate pending balance from layaways
+    const pendingLayaways = await db.getPendingLayaways();
+    const pendingBalance = pendingLayaways.reduce((sum, layaway) => sum + (layaway.pendingAmount || 0), 0);
+    
     document.getElementById('today-sales').textContent = formatCurrency(todayTotal);
     document.getElementById('month-sales').textContent = formatCurrency(monthTotal);
     document.getElementById('today-transactions').textContent = todaySales.length;
     document.getElementById('today-profit').textContent = formatCurrency(todayProfit);
+    document.getElementById('pending-balance').textContent = formatCurrency(pendingBalance);
 }
 
 async function viewSaleDetails(saleId) {
