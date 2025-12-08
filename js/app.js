@@ -1651,15 +1651,9 @@ async function loadLayaways() {
             const total = typeof layaway.total === 'number' ? layaway.total : 
                          safeItems.reduce((sum, item) => sum + (item.subtotal ?? 0), 0);
             
-            const totalPaid = typeof layaway.totalPaid === 'number' ? layaway.totalPaid :
-                            payments.reduce((sum, p) => sum + (p?.amount ?? 0), 0);
-            
-            const pendingAmount = typeof layaway.pendingAmount === 'number' ? layaway.pendingAmount :
-                                Math.max(0, total - totalPaid);
-            
             // Nota: Usamos || para strings de texto (reemplaza vacíos con defaults amigables)
             // y ?? para cálculos numéricos (preserva ceros válidos)
-            return {
+            const normalizedLayaway = {
                 ...layaway,
                 customerName: layaway.customerName || 'Cliente sin nombre',
                 customerPhone: layaway.customerPhone || 'Sin teléfono',
@@ -1667,10 +1661,14 @@ async function loadLayaways() {
                 status: layaway.status || 'pending',
                 items: safeItems,
                 payments: payments,
-                total: total,
-                totalPaid: totalPaid,
-                pendingAmount: pendingAmount
+                total: total
             };
+            
+            // CRITICAL: Always recalculate totals from payments array to ensure consistency
+            // This uses the shared utility function from db.js
+            recalculateLayawayTotals(normalizedLayaway);
+            
+            return normalizedLayaway;
         });
         
         // Filtrar duplicados defensivamente
