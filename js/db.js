@@ -9,6 +9,8 @@ const DB_VERSION = 2;
 /**
  * Shared utility function to recalculate layaway totals from payments array
  * This ensures consistency across all devices and prevents synchronization issues
+ * Note: This function is globally available and used by app.js
+ * Note: firebase-sync.js has its own ES5-compatible version for Windows 7 compatibility
  * @param {Object} layaway - The layaway object to recalculate
  * @returns {Object} The layaway object with recalculated totals
  */
