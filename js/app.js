@@ -1103,24 +1103,34 @@ async function filterSales() {
 }
 
 async function updateSalesSummary() {
-    const todaySales = await db.getTodaySales();
-    const monthSales = await db.getMonthSales();
-    
-    const todayTotal = db.calculateSalesTotals(todaySales);
-    const monthTotal = db.calculateSalesTotals(monthSales);
-    
-    // Calculate profit for today
-    const todayProfit = todaySales.reduce((sum, sale) => sum + (sale.totalProfit || 0), 0);
-    
-    // Calculate pending balance from layaways
-    const pendingLayaways = await db.getPendingLayaways();
-    const pendingBalance = pendingLayaways.reduce((sum, layaway) => sum + (layaway.pendingAmount || 0), 0);
-    
-    document.getElementById('today-sales').textContent = formatCurrency(todayTotal);
-    document.getElementById('month-sales').textContent = formatCurrency(monthTotal);
-    document.getElementById('today-transactions').textContent = todaySales.length;
-    document.getElementById('today-profit').textContent = formatCurrency(todayProfit);
-    document.getElementById('pending-balance').textContent = formatCurrency(pendingBalance);
+    try {
+        const todaySales = await db.getTodaySales();
+        const monthSales = await db.getMonthSales();
+        
+        const todayTotal = db.calculateSalesTotals(todaySales);
+        const monthTotal = db.calculateSalesTotals(monthSales);
+        
+        // Calculate profit for today
+        const todayProfit = todaySales.reduce((sum, sale) => sum + (sale.totalProfit || 0), 0);
+        
+        // Calculate pending balance from layaways
+        const pendingLayaways = await db.getPendingLayaways();
+        const pendingBalance = pendingLayaways.reduce((sum, layaway) => sum + (layaway.pendingAmount || 0), 0);
+        
+        document.getElementById('today-sales').textContent = formatCurrency(todayTotal);
+        document.getElementById('month-sales').textContent = formatCurrency(monthTotal);
+        document.getElementById('today-transactions').textContent = todaySales.length;
+        document.getElementById('today-profit').textContent = formatCurrency(todayProfit);
+        document.getElementById('pending-balance').textContent = formatCurrency(pendingBalance);
+    } catch (error) {
+        console.error('Error updating sales summary:', error);
+        // Set default values on error
+        document.getElementById('today-sales').textContent = '$0.00';
+        document.getElementById('month-sales').textContent = '$0.00';
+        document.getElementById('today-transactions').textContent = '0';
+        document.getElementById('today-profit').textContent = '$0.00';
+        document.getElementById('pending-balance').textContent = '$0.00';
+    }
 }
 
 async function viewSaleDetails(saleId) {
