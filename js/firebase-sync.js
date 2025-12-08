@@ -40,6 +40,35 @@ var syncInterval = null;
 // Mapa para rastrear operaciones de guardado pendientes y prevenir duplicados
 var pendingSaveOperations = {};
 
+// ========================================
+// UTILITY FUNCTIONS
+// ========================================
+
+/**
+ * Normalize phone number for comparison
+ * Removes spaces and keeps only digits and +
+ */
+function normalizePhone(phone) {
+    if (!phone) return '';
+    return phone.replace(/\s+/g, '').replace(/[^\d+]/g, '');
+}
+
+/**
+ * Normalize name for comparison
+ * Trims whitespace and converts to lowercase
+ */
+function normalizeName(name) {
+    if (!name) return '';
+    return name.trim().toLowerCase();
+}
+
+/**
+ * Check if current viewport is mobile size
+ */
+function isMobileViewport() {
+    return window.innerWidth <= 768;
+}
+
 // Inicializar Firebase
 function initFirebase() {
     try {
@@ -74,8 +103,7 @@ function showFirebaseWarning() {
     var warningBanner = document.createElement('div');
     warningBanner.id = 'firebase-warning-banner';
     // Check if we're on mobile to position below mobile header
-    var isMobile = window.innerWidth <= 768;
-    var topPosition = isMobile ? '56px' : '0';
+    var topPosition = isMobileViewport() ? '56px' : '0';
     
     warningBanner.style.cssText = 'position:fixed;top:' + topPosition + ';left:0;right:0;z-index:10000;' +
         'background:linear-gradient(135deg,#f59e0b 0%,#d97706 100%);' +
@@ -97,8 +125,7 @@ function showFirebaseWarning() {
     
     // Update position on window resize
     window.addEventListener('resize', function() {
-        var isMobile = window.innerWidth <= 768;
-        warningBanner.style.top = isMobile ? '56px' : '0';
+        warningBanner.style.top = isMobileViewport() ? '56px' : '0';
     });
 }
 
@@ -365,11 +392,11 @@ function saveToLocal(collection, firebaseKey, data) {
                         // También verificar por nombre, teléfono normalizado y fecha aproximada (mismo día)
                         if (l.customerName && record.customerName && 
                             l.customerPhone && record.customerPhone) {
-                            // Normalizar nombres y teléfonos para comparación
-                            var localNameNorm = l.customerName.trim().toLowerCase();
-                            var remoteNameNorm = record.customerName.trim().toLowerCase();
-                            var localPhoneNorm = l.customerPhone.replace(/\s+/g, '').replace(/[^\d+]/g, '');
-                            var remotePhoneNorm = record.customerPhone.replace(/\s+/g, '').replace(/[^\d+]/g, '');
+                            // Normalizar nombres y teléfonos para comparación usando funciones compartidas
+                            var localNameNorm = normalizeName(l.customerName);
+                            var remoteNameNorm = normalizeName(record.customerName);
+                            var localPhoneNorm = normalizePhone(l.customerPhone);
+                            var remotePhoneNorm = normalizePhone(record.customerPhone);
                             
                             if (localNameNorm === remoteNameNorm && localPhoneNorm === remotePhoneNorm) {
                                 // Verificar que las fechas sean válidas y del mismo día

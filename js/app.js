@@ -36,6 +36,28 @@ const categoryEmojis = {
 };
 
 // ========================================
+// UTILITY FUNCTIONS
+// ========================================
+
+/**
+ * Normalize phone number for comparison
+ * Removes spaces and keeps only digits and +
+ */
+function normalizePhone(phone) {
+    if (!phone) return '';
+    return phone.replace(/\s+/g, '').replace(/[^\d+]/g, '');
+}
+
+/**
+ * Normalize name for comparison
+ * Trims whitespace and converts to lowercase
+ */
+function normalizeName(name) {
+    if (!name) return '';
+    return name.trim().toLowerCase();
+}
+
+// ========================================
 // INITIALIZATION
 // ========================================
 document.addEventListener('DOMContentLoaded', async () => {
@@ -1551,9 +1573,9 @@ function deduplicateLayaways(layaways) {
                 const date = new Date(layaway.date);
                 // Truncar a solo año-mes-día para la clave de deduplicación
                 const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-                // Normalizar nombre y teléfono para comparación (eliminar espacios extra)
-                const normalizedName = layaway.customerName.trim().toLowerCase();
-                const normalizedPhone = layaway.customerPhone.replace(/\s+/g, '').replace(/[^\d+]/g, '');
+                // Normalizar nombre y teléfono para comparación usando funciones compartidas
+                const normalizedName = normalizeName(layaway.customerName);
+                const normalizedPhone = normalizePhone(layaway.customerPhone);
                 uniqueKey = `local_${normalizedName}_${normalizedPhone}_${dateKey}`;
             } catch (error) {
                 console.error('Error procesando fecha del apartado:', error);
