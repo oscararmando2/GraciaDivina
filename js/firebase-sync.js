@@ -347,33 +347,97 @@ function saveToLocal(collection, firebaseKey, data) {
                     console.log('Total de apartados locales antes de sincronizar:', layaways.length);
                     
                     // Verificar si el apartado ya existe por firebaseKey O por info del cliente y fecha
-                    var exists = layaways.find(function(l) { 
-                        // Verificar por firebaseKey primero
+                    var existingLayaway = layaways.find(function(l) { 
+                        // Verificar por firebaseKey primero (más confiable)
                         if (l.firebaseKey === firebaseKey) return true;
-                        // También verificar por nombre, teléfono y fecha aproximada (mismo día)
-                        if (l.customerName === record.customerName && 
-                            l.customerPhone === record.customerPhone) {
-                            // Verificar que las fechas sean válidas antes de comparar
-                            if (l.date && record.date) {
-                                var localDate = new Date(l.date);
-                                var remoteDate = new Date(record.date);
-                                // Verificar que las fechas son válidas
-                                if (!isNaN(localDate.getTime()) && !isNaN(remoteDate.getTime())) {
-                                    if (localDate.toDateString() === remoteDate.toDateString()) {
-                                        // Actualizar el registro local con firebaseKey para futuras sincronizaciones
-                                        if (!l.firebaseKey) {
-                                            console.log('Vinculando apartado existente con Firebase key:', firebaseKey);
-                                            l.firebaseKey = firebaseKey;
-                                            db.updateLayaway(l);
+                        
+                        // También verificar por nombre, teléfono normalizado y fecha aproximada (mismo día)
+                        if (l.customerName && record.customerName && 
+                            l.customerPhone && record.customerPhone) {
+                            // Normalizar nombres y teléfonos para comparación
+                            var localNameNorm = l.customerName.trim().toLowerCase();
+                            var remoteNameNorm = record.customerName.trim().toLowerCase();
+                            var localPhoneNorm = l.customerPhone.replace(/\s+/g, '').replace(/[^\d+]/g, '');
+                            var remotePhoneNorm = record.customerPhone.replace(/\s+/g, '').replace(/[^\d+]/g, '');
+                            
+                            if (localNameNorm === remoteNameNorm && localPhoneNorm === remotePhoneNorm) {
+                                // Verificar que las fechas sean válidas y del mismo día
+                                if (l.date && record.date) {
+                                    var localDate = new Date(l.date);
+                                    var remoteDate = new Date(record.date);
+                                    if (!isNaN(localDate.getTime()) && !isNaN(remoteDate.getTime())) {
+                                        if (localDate.toDateString() === remoteDate.toDateString()) {
+                                            return true;
                                         }
-                                        return true;
                                     }
                                 }
                             }
                         }
                         return false;
                     });
-                    if (!exists) {
+                    
+                    if (existingLayaway) {
+                        // Apartado existe - actualizar si hay cambios
+                        console.log('Apartado ya existe localmente, verificando si necesita actualización');
+                        
+                        // Vincular con firebaseKey si no está establecido
+                        if (!existingLayaway.firebaseKey) {
+                            console.log('Vinculando apartado existente con Firebase key:', firebaseKey);
+                            existingLayaway.firebaseKey = firebaseKey;
+                        }
+                        
+                        // Actualizar con datos más recientes de Firebase si es necesario
+                        var needsUpdate = false;
+                        
+                        // Comparar updatedAt timestamps si existen
+                        if (record.updatedAt && existingLayaway.updatedAt) {
+                            var remoteUpdated = new Date(record.updatedAt);
+                            var localUpdated = new Date(existingLayaway.updatedAt);
+                            if (!isNaN(remoteUpdated.getTime()) && !isNaN(localUpdated.getTime())) {
+                                if (remoteUpdated > localUpdated) {
+                                    needsUpdate = true;
+                                }
+                            }
+                        } else if (record.updatedAt && !existingLayaway.updatedAt) {
+                            needsUpdate = true;
+                        }
+                        
+                        // Comparar pagos y totales
+                        if (record.totalPaid !== existingLayaway.totalPaid || 
+                            record.pendingAmount !== existingLayaway.pendingAmount ||
+                            record.status !== existingLayaway.status) {
+                            needsUpdate = true;
+                        }
+                        
+                        if (needsUpdate) {
+                            console.log('Actualizando apartado local con datos de Firebase');
+                            // Mantener el ID local pero actualizar todos los demás campos
+                            var updatedLayaway = Object.assign({}, record, {
+                                id: existingLayaway.id,
+                                firebaseKey: firebaseKey
+                            });
+                            db.updateLayaway(updatedLayaway).then(function() {
+                                console.log('✓ Apartado actualizado desde Firebase');
+                                delete pendingSaveOperations[operationKey];
+                                if (window.loadLayaways && typeof window.loadLayaways === 'function') {
+                                    window.loadLayaways();
+                                }
+                            }).catch(function(err) {
+                                console.error('✗ Error actualizando apartado:', err);
+                                delete pendingSaveOperations[operationKey];
+                            });
+                        } else {
+                            // Solo vincular firebaseKey si cambió
+                            if (!existingLayaway.firebaseKey || existingLayaway.firebaseKey !== firebaseKey) {
+                                db.updateLayaway(existingLayaway).catch(function(err) {
+                                    console.error('Error actualizando firebaseKey:', err);
+                                });
+                            }
+                            console.log('Apartado ya está actualizado, no se requieren cambios');
+                            delete pendingSaveOperations[operationKey];
+                        }
+                    } else {
+                        // Apartado nuevo - agregarlo
                         try {
                             var store = db.getStore('layaways', 'readwrite');
                             var request = store.add(record);
@@ -393,9 +457,6 @@ function saveToLocal(collection, firebaseKey, data) {
                             console.error('✗ Error accediendo al store de apartados:', storeErr);
                             delete pendingSaveOperations[operationKey];
                         }
-                    } else {
-                        console.log('Apartado ya existe localmente, no se duplica');
-                        delete pendingSaveOperations[operationKey];
                     }
                 }).catch(function(err) {
                     console.error('✗ Error obteniendo apartados para sincronización:', err);
@@ -464,8 +525,19 @@ function uploadLocalData() {
             var path = getFirebasePath('layaways') + '/' + key;
             var data = Object.assign({}, layaway);
             delete data.id;
-            data.updatedAt = data.updatedAt || new Date().toISOString();
-            firebaseDb.ref(path).set(data);
+            // Siempre actualizar timestamp para reflejar última modificación
+            data.updatedAt = new Date().toISOString();
+            firebaseDb.ref(path).set(data).then(function() {
+                // Si el apartado no tenía firebaseKey, actualizarlo localmente
+                if (!layaway.firebaseKey) {
+                    layaway.firebaseKey = key;
+                    db.updateLayaway(layaway).catch(function(err) {
+                        console.error('Error actualizando firebaseKey local:', err);
+                    });
+                }
+            }).catch(function(err) {
+                console.error('Error subiendo apartado a Firebase:', err);
+            });
         });
     });
 

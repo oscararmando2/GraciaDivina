@@ -1545,10 +1545,16 @@ function deduplicateLayaways(layaways) {
             // Usar firebaseKey como identificador principal
             uniqueKey = `fb_${layaway.firebaseKey}`;
         } else if (layaway.customerName && layaway.customerPhone && layaway.date) {
-            // Solo deduplicar si tenemos datos completos
+            // Deduplicar usando fecha truncada al día (sin horas/minutos/segundos)
+            // Esto evita que pequeñas diferencias de tiempo creen duplicados
             try {
-                const dateStr = new Date(layaway.date).toISOString();
-                uniqueKey = `local_${layaway.customerName}_${layaway.customerPhone}_${dateStr}`;
+                const date = new Date(layaway.date);
+                // Truncar a solo año-mes-día para la clave de deduplicación
+                const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                // Normalizar nombre y teléfono para comparación (eliminar espacios extra)
+                const normalizedName = layaway.customerName.trim().toLowerCase();
+                const normalizedPhone = layaway.customerPhone.replace(/\s+/g, '').replace(/[^\d+]/g, '');
+                uniqueKey = `local_${normalizedName}_${normalizedPhone}_${dateKey}`;
             } catch (error) {
                 console.error('Error procesando fecha del apartado:', error);
                 uniqueKey = `id_${layaway.id}`;
