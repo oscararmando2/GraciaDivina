@@ -6,6 +6,34 @@
 const DB_NAME = 'GraciaDivinaDB';
 const DB_VERSION = 2;
 
+/**
+ * Shared utility function to recalculate layaway totals from payments array
+ * This ensures consistency across all devices and prevents synchronization issues
+ * @param {Object} layaway - The layaway object to recalculate
+ * @returns {Object} The layaway object with recalculated totals
+ */
+function recalculateLayawayTotals(layaway) {
+    if (!layaway) return layaway;
+    
+    // Ensure payments is a valid array
+    const payments = Array.isArray(layaway.payments) ? layaway.payments : [];
+    
+    // Calculate totalPaid from the payments array using consistent validation
+    const totalPaid = payments.reduce((sum, p) => sum + (p?.amount || 0), 0);
+    
+    // Ensure total is a valid number
+    const total = typeof layaway.total === 'number' ? layaway.total : 0;
+    
+    // Calculate pending amount
+    const pendingAmount = Math.max(0, total - totalPaid);
+    
+    // Update the layaway object
+    layaway.totalPaid = totalPaid;
+    layaway.pendingAmount = pendingAmount;
+    
+    return layaway;
+}
+
 class Database {
     constructor() {
         this.db = null;
@@ -351,10 +379,7 @@ class Database {
             layaway.payments = layaway.payments || [];
             
             // CRITICAL: Recalculate totals from payments array to ensure consistency
-            const payments = Array.isArray(layaway.payments) ? layaway.payments : [];
-            layaway.totalPaid = payments.reduce((sum, p) => sum + (p?.amount || 0), 0);
-            const total = typeof layaway.total === 'number' ? layaway.total : 0;
-            layaway.pendingAmount = Math.max(0, total - layaway.totalPaid);
+            recalculateLayawayTotals(layaway);
             
             const request = store.add(layaway);
             
@@ -394,10 +419,7 @@ class Database {
             
             // CRITICAL: Recalculate totals from payments array to ensure consistency
             // This prevents synchronization issues across devices
-            const payments = Array.isArray(layaway.payments) ? layaway.payments : [];
-            layaway.totalPaid = payments.reduce((sum, p) => sum + (p?.amount || 0), 0);
-            const total = typeof layaway.total === 'number' ? layaway.total : 0;
-            layaway.pendingAmount = Math.max(0, total - layaway.totalPaid);
+            recalculateLayawayTotals(layaway);
             
             const request = store.put(layaway);
             

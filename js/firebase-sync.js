@@ -72,6 +72,7 @@ function isMobileViewport() {
 /**
  * Recalculate layaway totals from payments array
  * This ensures consistency across all devices
+ * Note: Uses ES5 syntax for Windows 7 compatibility
  */
 function recalculateLayawayTotals(layaway) {
     if (!layaway) return layaway;
@@ -80,8 +81,9 @@ function recalculateLayawayTotals(layaway) {
     var payments = Array.isArray(layaway.payments) ? layaway.payments : [];
     
     // Calculate totalPaid from the payments array
+    // Using OR operator for consistency with db.js validation
     var totalPaid = payments.reduce(function(sum, p) {
-        return sum + (typeof p.amount === 'number' ? p.amount : 0);
+        return sum + (p && p.amount ? p.amount : 0);
     }, 0);
     
     // Ensure total is a valid number
