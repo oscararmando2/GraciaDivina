@@ -756,6 +756,97 @@ window.firebaseSync = {
         
         await modules.remove(recordRef);
         console.log('Deleted from Firebase:', `${getFirebasePath(collection)}/${key}`);
+    },
+    
+    /**
+     * Add layaway payment using transaction to prevent overwrite conflicts
+     */
+    addLayawayPaymentTransaction: async (layawayId, amount, paymentMethod, localLayaway) => {
+        if (!firebaseDb || !isLoggedIn) {
+            throw new Error('Firebase not available');
+        }
+        
+        const modules = window.firebaseModules;
+        const key = localLayaway.firebaseKey || ('local_' + layawayId);
+        const layawayRef = modules.ref(firebaseDb, `${getFirebasePath('layaways')}/${key}`);
+        
+        try {
+            await modules.runTransaction(layawayRef, (currentData) => {
+                if (currentData === null) {
+                    // If layaway doesn't exist in Firebase, upload the local version
+                    const data = { ...localLayaway };
+                    delete data.id;
+                    data.updatedAt = new Date().toISOString();
+                    return data;
+                }
+                
+                // Add new payment to existing payments array
+                const payments = Array.isArray(currentData.payments) ? currentData.payments : [];
+                const newPayment = {
+                    amount,
+                    paymentMethod,
+                    date: new Date().toISOString()
+                };
+                payments.push(newPayment);
+                
+                // Recalculate totals
+                const totalPaid = payments.reduce((sum, p) => sum + (p?.amount || 0), 0);
+                const total = typeof currentData.total === 'number' ? currentData.total : 0;
+                const pendingAmount = Math.max(0, total - totalPaid);
+                
+                // Return updated data with new payment
+                return {
+                    ...currentData,
+                    payments,
+                    totalPaid,
+                    pendingAmount,
+                    updatedAt: new Date().toISOString()
+                };
+            });
+            
+            console.log('✓ Layaway payment added via transaction');
+            return true;
+        } catch (error) {
+            console.error('✗ Transaction failed:', error);
+            throw error;
+        }
+    },
+    
+    /**
+     * Create sale using transaction to ensure atomic operation
+     */
+    createSaleTransaction: async (sale) => {
+        if (!firebaseDb || !isLoggedIn) {
+            throw new Error('Firebase not available');
+        }
+        
+        const modules = window.firebaseModules;
+        const key = sale.firebaseKey || ('local_' + sale.id);
+        const saleRef = modules.ref(firebaseDb, `${getFirebasePath('sales')}/${key}`);
+        
+        try {
+            await modules.runTransaction(saleRef, (currentData) => {
+                if (currentData !== null) {
+                    // Sale already exists, don't overwrite
+                    return undefined; // Abort transaction
+                }
+                
+                // Create new sale
+                const data = { ...sale };
+                delete data.id;
+                data.updatedAt = new Date().toISOString();
+                data.createdAt = data.createdAt || new Date().toISOString();
+                
+                return data;
+            });
+            
+            console.log('✓ Sale created via transaction');
+            return true;
+        } catch (error) {
+            console.error('✗ Sale transaction failed:', error);
+            // This is expected if sale already exists
+            return false;
+        }
     }
 };
 
