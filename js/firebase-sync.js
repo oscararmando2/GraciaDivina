@@ -569,19 +569,37 @@ function uploadLocalData() {
     // Subir productos
     db.getAllProducts().then(function(products) {
         products.forEach(function(product) {
-            var key = product.firebaseKey || ('local_' + product.id);
+            // Skip items that already have a firebaseKey (already in Firebase)
+            if (product.firebaseKey) return;
+            
+            // Only upload locally created items
+            if (!product.id) return;
+            
+            var key = 'local_' + product.id;
             var path = getFirebasePath('products') + '/' + key;
             var data = Object.assign({}, product);
             delete data.id;
             data.updatedAt = data.updatedAt || new Date().toISOString();
-            firebaseDb.ref(path).set(data);
+            firebaseDb.ref(path).set(data).then(function() {
+                // Update local item with firebaseKey
+                product.firebaseKey = key;
+                db.updateProduct(product).catch(function(err) {
+                    console.error('Error actualizando firebaseKey local:', err);
+                });
+            });
         });
     });
 
     // Subir ventas
     db.getAllSales().then(function(sales) {
         sales.forEach(function(sale) {
-            var key = sale.firebaseKey || ('local_' + sale.id);
+            // Skip items that already have a firebaseKey (already in Firebase)
+            if (sale.firebaseKey) return;
+            
+            // Only upload locally created items
+            if (!sale.id) return;
+            
+            var key = 'local_' + sale.id;
             var path = getFirebasePath('sales') + '/' + key;
             var data = Object.assign({}, sale);
             delete data.id;
@@ -593,20 +611,24 @@ function uploadLocalData() {
     // Subir apartados
     db.getAllLayaways().then(function(layaways) {
         layaways.forEach(function(layaway) {
-            var key = layaway.firebaseKey || ('local_' + layaway.id);
+            // Skip items that already have a firebaseKey (already in Firebase)
+            if (layaway.firebaseKey) return;
+            
+            // Only upload locally created items
+            if (!layaway.id) return;
+            
+            var key = 'local_' + layaway.id;
             var path = getFirebasePath('layaways') + '/' + key;
             var data = Object.assign({}, layaway);
             delete data.id;
             // Siempre actualizar timestamp para reflejar última modificación
             data.updatedAt = new Date().toISOString();
             firebaseDb.ref(path).set(data).then(function() {
-                // Si el apartado no tenía firebaseKey, actualizarlo localmente
-                if (!layaway.firebaseKey) {
-                    layaway.firebaseKey = key;
-                    db.updateLayaway(layaway).catch(function(err) {
-                        console.error('Error actualizando firebaseKey local:', err);
-                    });
-                }
+                // Update local item with firebaseKey
+                layaway.firebaseKey = key;
+                db.updateLayaway(layaway).catch(function(err) {
+                    console.error('Error actualizando firebaseKey local:', err);
+                });
             }).catch(function(err) {
                 console.error('Error subiendo apartado a Firebase:', err);
             });
@@ -616,7 +638,13 @@ function uploadLocalData() {
     // Subir dueñas
     db.getAllOwners().then(function(owners) {
         owners.forEach(function(owner) {
-            var key = owner.firebaseKey || ('owner_' + owner.id);
+            // Skip items that already have a firebaseKey (already in Firebase)
+            if (owner.firebaseKey) return;
+            
+            // Only upload locally created items
+            if (!owner.id) return;
+            
+            var key = 'owner_' + owner.id;
             var path = getFirebasePath('owners') + '/' + key;
             var data = { name: owner.name, updatedAt: new Date().toISOString() };
             firebaseDb.ref(path).set(data);
