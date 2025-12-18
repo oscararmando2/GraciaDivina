@@ -281,13 +281,19 @@ class Database {
             const request = store.add(sale);
             
             request.onsuccess = async () => {
-                // Update stock for each item (skip manual products without productId)
-                for (const item of sale.items) {
-                    if (item.productId) {
-                        await this.updateStock(item.productId, -item.quantity);
+                try {
+                    // Update stock for each item (skip manual products without productId)
+                    for (const item of sale.items) {
+                        if (item.productId) {
+                            await this.updateStock(item.productId, -item.quantity);
+                        }
                     }
+                    resolve({ ...sale, id: request.result });
+                } catch (error) {
+                    console.error('Error updating stock after sale:', error);
+                    // Sale is already saved, so we resolve anyway but log the error
+                    resolve({ ...sale, id: request.result });
                 }
-                resolve({ ...sale, id: request.result });
             };
             request.onerror = () => reject(request.error);
         });
