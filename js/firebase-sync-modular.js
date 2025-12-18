@@ -21,6 +21,8 @@ const firebaseConfig = {
 
 // Constants
 const SYNC_INTERVAL_MS = 10000;  // Sync every 10 seconds
+const UI_RELOAD_DEBOUNCE_MS = 1000;  // Debounce UI reloads by 1 second
+const RELOAD_DELAY_MS = 1500;  // Delay before reloading page after manual sync
 const rootPath = 'graciadivina_ketzy2025';
 
 // Collection mapping: local -> Firebase
@@ -105,15 +107,11 @@ async function initFirebase() {
         firebaseDb = modules.getDatabase(firebaseApp);
         firebaseAuth = modules.getAuth(firebaseApp);
 
-        // Enable offline persistence with multi-tab support
-        try {
-            await modules.enableMultiTabIndexedDbPersistence(firebaseDb);
-            console.log('✓ Firebase offline persistence enabled with multi-tab support');
-        } catch (error) {
-            console.warn('Offline persistence error (already enabled or not supported):', error.message);
-        }
-
+        // Note: Realtime Database has offline persistence enabled by default
+        // No need to call enableMultiTabIndexedDbPersistence (that's for Firestore)
         console.log('✓ Firebase initialized successfully (modular SDK)');
+        console.log('✓ Realtime Database offline persistence is enabled by default');
+        
         return true;
     } catch (error) {
         console.error('✗ Error initializing Firebase:', error);
@@ -347,7 +345,7 @@ function reloadUIForCollection(collection) {
                 }
                 break;
         }
-    }, 1000); // Debounce 1 second
+    }, UI_RELOAD_DEBOUNCE_MS); // Use constant instead of magic number
 }
 
 /**
@@ -682,7 +680,7 @@ function createSyncButton() {
         
         setTimeout(() => {
             location.reload();
-        }, 1500);
+        }, RELOAD_DELAY_MS);
     };
     
     const style = document.createElement('style');
@@ -764,6 +762,16 @@ window.firebaseSync = {
     addLayawayPaymentTransaction: async (layawayId, amount, paymentMethod, localLayaway) => {
         if (!firebaseDb || !isLoggedIn) {
             throw new Error('Firebase not available');
+        }
+        
+        // Validate required parameters
+        if (!layawayId || !amount || !paymentMethod || !localLayaway) {
+            throw new Error('Missing required parameters for layaway payment transaction');
+        }
+        
+        // Validate localLayaway has required fields
+        if (!localLayaway.total || !Array.isArray(localLayaway.items) || !localLayaway.customerName) {
+            throw new Error('Invalid layaway object - missing required fields');
         }
         
         const modules = window.firebaseModules;

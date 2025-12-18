@@ -959,7 +959,7 @@
         // Importar Firebase modular SDK
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js';
         import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js';
-        import { getDatabase, ref, set, get, onValue, onDisconnect, remove, runTransaction, enableMultiTabIndexedDbPersistence } from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-database.js';
+        import { getDatabase, ref, set, get, onValue, onDisconnect, remove, runTransaction } from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-database.js';
         
         // Hacer disponibles globalmente para firebase-sync.js
         window.firebaseModules = {
@@ -974,8 +974,7 @@
             onValue,
             onDisconnect,
             remove,
-            runTransaction,
-            enableMultiTabIndexedDbPersistence
+            runTransaction
         };
         
         // Señalar que Firebase está listo
