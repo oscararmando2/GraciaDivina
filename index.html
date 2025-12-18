@@ -954,14 +954,38 @@
     <!-- Toast Notifications -->
     <div id="toast-container" class="toast-container"></div>
 
-    <!-- Firebase SDK para sincronización en la nube -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <!-- Firebase SDK Modular (v12.7.0) para sincronización en la nube -->
+    <script type="module">
+        // Importar Firebase modular SDK
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js';
+        import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js';
+        import { getDatabase, ref, set, get, onValue, onDisconnect, remove, runTransaction, enableMultiTabIndexedDbPersistence } from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-database.js';
+        
+        // Hacer disponibles globalmente para firebase-sync.js
+        window.firebaseModules = {
+            initializeApp,
+            getAuth,
+            signInAnonymously,
+            onAuthStateChanged,
+            getDatabase,
+            ref,
+            set,
+            get,
+            onValue,
+            onDisconnect,
+            remove,
+            runTransaction,
+            enableMultiTabIndexedDbPersistence
+        };
+        
+        // Señalar que Firebase está listo
+        window.firebaseModulesReady = true;
+        window.dispatchEvent(new Event('firebaseModulesReady'));
+    </script>
 
     <!-- Scripts -->
     <script src="js/db.js"></script>
-    <script src="js/firebase-sync.js"></script>
+    <script src="js/firebase-sync-modular.js"></script>
     <script src="js/app.js"></script>
     
     <!-- Service Worker Registration y Ajustes para Windows 7 -->
