@@ -272,22 +272,28 @@ class Database {
      * Add a new sale
      */
     async addSale(sale) {
-        return new Promise(async (resolve, reject) => {
+        // Generate ticket number BEFORE creating the transaction to avoid transaction timeout
+        sale.ticketNumber = await this.generateTicketNumber();
+        sale.date = new Date().toISOString();
+        
+        return new Promise((resolve, reject) => {
             const store = this.getStore('sales', 'readwrite');
-            
-            sale.ticketNumber = await this.generateTicketNumber();
-            sale.date = new Date().toISOString();
-            
             const request = store.add(sale);
             
             request.onsuccess = async () => {
-                // Update stock for each item (skip manual products without productId)
-                for (const item of sale.items) {
-                    if (item.productId) {
-                        await this.updateStock(item.productId, -item.quantity);
+                try {
+                    // Update stock for each item (skip manual products without productId)
+                    for (const item of sale.items) {
+                        if (item.productId) {
+                            await this.updateStock(item.productId, -item.quantity);
+                        }
                     }
+                    resolve({ ...sale, id: request.result });
+                } catch (error) {
+                    console.error('Error updating stock after sale:', error);
+                    // Sale is already saved, so we resolve anyway but log the error
+                    resolve({ ...sale, id: request.result });
                 }
-                resolve({ ...sale, id: request.result });
             };
             request.onerror = () => reject(request.error);
         });
