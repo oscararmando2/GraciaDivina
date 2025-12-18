@@ -1,6 +1,10 @@
 /**
  * Gracia Divina POS - Firebase Realtime Database Sync (Modular SDK v12.7.0+)
  * Compatible con Windows 7, Mac y móviles
+ * 
+ * Note: Firebase API keys are designed to be public for client-side web apps.
+ * Security is enforced through Firebase Security Rules, not API key secrecy.
+ * See: https://firebase.google.com/docs/projects/api-keys
  */
 
 // Firebase modules will be loaded from index.html
@@ -107,8 +111,8 @@ async function initFirebase() {
         firebaseDb = modules.getDatabase(firebaseApp);
         firebaseAuth = modules.getAuth(firebaseApp);
 
-        // Note: Realtime Database has offline persistence enabled by default
-        // No need to call enableMultiTabIndexedDbPersistence (that's for Firestore)
+        // Note: Realtime Database (not Firestore) has offline persistence enabled by default
+        // There is no explicit API call needed - it works automatically
         console.log('✓ Firebase initialized successfully (modular SDK)');
         console.log('✓ Realtime Database offline persistence is enabled by default');
         
@@ -769,6 +773,11 @@ window.firebaseSync = {
             throw new Error('Missing required parameters for layaway payment transaction');
         }
         
+        // Validate amount is a positive number
+        if (typeof amount !== 'number' || isNaN(amount) || amount <= 0) {
+            throw new Error('Payment amount must be a positive number');
+        }
+        
         // Validate localLayaway has required fields
         if (!localLayaway.total || !Array.isArray(localLayaway.items) || !localLayaway.customerName) {
             throw new Error('Invalid layaway object - missing required fields');
@@ -798,6 +807,8 @@ window.firebaseSync = {
                 payments.push(newPayment);
                 
                 // Recalculate totals
+                // Note: Using reduce for currency - precision handled at display layer
+                // All amounts stored as numbers, formatted only when displaying to user
                 const totalPaid = payments.reduce((sum, p) => sum + (p?.amount || 0), 0);
                 const total = typeof currentData.total === 'number' ? currentData.total : 0;
                 const pendingAmount = Math.max(0, total - totalPaid);
