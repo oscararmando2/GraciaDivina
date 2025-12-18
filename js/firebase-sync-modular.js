@@ -567,31 +567,55 @@ async function uploadLocalData() {
         // Upload products
         const products = await db.getAllProducts();
         for (const product of products) {
-            const key = product.firebaseKey || ('local_' + product.id);
+            // Skip items that already have a firebaseKey (already in Firebase)
+            if (product.firebaseKey) continue;
+            
+            // Only upload locally created items
+            if (!product.id) continue;
+            
+            const key = 'local_' + product.id;
             const data = { ...product };
             delete data.id;
             data.updatedAt = data.updatedAt || new Date().toISOString();
             
             const productRef = modules.ref(firebaseDb, `${getFirebasePath('products')}/${key}`);
             await modules.set(productRef, data);
+            
+            // Update local item with firebaseKey
+            product.firebaseKey = key;
+            await db.updateProduct(product);
         }
         
         // Upload sales
         const sales = await db.getAllSales();
         for (const sale of sales) {
-            const key = sale.firebaseKey || ('local_' + sale.id);
+            // Skip items that already have a firebaseKey (already in Firebase)
+            if (sale.firebaseKey) continue;
+            
+            // Only upload locally created items
+            if (!sale.id) continue;
+            
+            const key = 'local_' + sale.id;
             const data = { ...sale };
             delete data.id;
             data.updatedAt = data.updatedAt || new Date().toISOString();
             
             const saleRef = modules.ref(firebaseDb, `${getFirebasePath('sales')}/${key}`);
             await modules.set(saleRef, data);
+            
+            // Note: Sales don't need firebaseKey updated locally as they're immutable
         }
         
         // Upload layaways
         const layaways = await db.getAllLayaways();
         for (const layaway of layaways) {
-            const key = layaway.firebaseKey || ('local_' + layaway.id);
+            // Skip items that already have a firebaseKey (already in Firebase)
+            if (layaway.firebaseKey) continue;
+            
+            // Only upload locally created items
+            if (!layaway.id) continue;
+            
+            const key = 'local_' + layaway.id;
             const data = { ...layaway };
             delete data.id;
             data.updatedAt = new Date().toISOString();
@@ -599,20 +623,27 @@ async function uploadLocalData() {
             const layawayRef = modules.ref(firebaseDb, `${getFirebasePath('layaways')}/${key}`);
             await modules.set(layawayRef, data);
             
-            if (!layaway.firebaseKey) {
-                layaway.firebaseKey = key;
-                await db.updateLayaway(layaway);
-            }
+            // Update local item with firebaseKey
+            layaway.firebaseKey = key;
+            await db.updateLayaway(layaway);
         }
         
         // Upload owners
         const owners = await db.getAllOwners();
         for (const owner of owners) {
-            const key = owner.firebaseKey || ('owner_' + owner.id);
+            // Skip items that already have a firebaseKey (already in Firebase)
+            if (owner.firebaseKey) continue;
+            
+            // Only upload locally created items
+            if (!owner.id) continue;
+            
+            const key = 'owner_' + owner.id;
             const data = { name: owner.name, updatedAt: new Date().toISOString() };
             
             const ownerRef = modules.ref(firebaseDb, `${getFirebasePath('owners')}/${key}`);
             await modules.set(ownerRef, data);
+            
+            // Note: Owners don't have an update method, firebaseKey tracking not critical
         }
         
         // Upload settings
