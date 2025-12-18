@@ -238,4 +238,26 @@ Solo necesitas:
 ```javascript
 diagnosticoFirebase()
 ```
-Esto te dará información completa del estado de sincronización en ese dispositivo.
+
+### ¿Qué hace `diagnosticoFirebase()`?
+Este comando de diagnóstico te muestra:
+- ✅ Estado de Firebase (conectado/desconectado)
+- ✅ Si el usuario está autenticado
+- ✅ Número de productos, ventas y apartados locales
+- ✅ Número de items en Firebase
+- ✅ Errores de conexión si los hay
+- ✅ User ID único de este dispositivo
+
+**Ejemplo de salida:**
+```
+=== DIAGNÓSTICO DE FIREBASE ===
+Firebase modules available: true
+Firebase App initialized: true
+User authenticated: true
+User ID: abc123xyz
+✓ Local layaways: 5
+✓ Firebase layaways: 5
+=== ALL CHECKS PASSED ===
+```
+
+Esto te ayuda a verificar que la sincronización está funcionando correctamente en ese dispositivo.
