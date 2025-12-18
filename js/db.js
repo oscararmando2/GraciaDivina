@@ -272,12 +272,12 @@ class Database {
      * Add a new sale
      */
     async addSale(sale) {
-        return new Promise(async (resolve, reject) => {
+        // Generate ticket number BEFORE creating the transaction to avoid transaction timeout
+        sale.ticketNumber = await this.generateTicketNumber();
+        sale.date = new Date().toISOString();
+        
+        return new Promise((resolve, reject) => {
             const store = this.getStore('sales', 'readwrite');
-            
-            sale.ticketNumber = await this.generateTicketNumber();
-            sale.date = new Date().toISOString();
-            
             const request = store.add(sale);
             
             request.onsuccess = async () => {
