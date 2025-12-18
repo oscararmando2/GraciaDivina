@@ -1,5 +1,15 @@
 # 🎉 Migración Firebase Completada
 
+## 🌐 ¿Buscas info sobre sincronización multi-dispositivo?
+
+**Si quieres saber si la app funciona en Windows, Mac, iPhone, Android y sincroniza entre todos:**
+
+👉 **[LEE ESTE DOCUMENTO: SINCRONIZACION_MULTIPLATAFORMA.md](./SINCRONIZACION_MULTIPLATAFORMA.md)**
+
+**Respuesta corta: SÍ, ya funciona perfectamente entre todos los dispositivos.** ✅
+
+---
+
 ## ✅ TODO LISTO
 
 La migración a Firebase SDK Modular 12.7.0+ ha sido completada exitosamente.
