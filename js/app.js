@@ -780,6 +780,17 @@ async function completeSale() {
         
         const savedSale = await db.addSale(sale);
         
+        // Sync to Firebase using transaction to prevent duplicate sales
+        if (typeof firebaseSync !== 'undefined' && firebaseSync.isUserAuthenticated() && savedSale) {
+            try {
+                await firebaseSync.createSaleTransaction(savedSale);
+            } catch (syncError) {
+                console.warn('Firebase transaction failed, sale saved locally:', syncError);
+                // Fallback to regular upload if transaction fails
+                await firebaseSync.uploadSingle('sales', savedSale);
+            }
+        }
+        
         // Clear cart and reset
         state.cart = [];
         document.getElementById('discount-input').value = 0;
@@ -1931,15 +1942,24 @@ async function confirmLayawayPayment() {
     }
     
     try {
+        // Add payment locally first
         await db.addLayawayPayment(state.currentLayaway.id, amount, method);
         
-        // Sync updated layaway to Firebase for cross-device synchronization
+        // Sync to Firebase using transaction to prevent conflicts
         const updatedLayaway = await db.getLayaway(state.currentLayaway.id);
         if (typeof firebaseSync !== 'undefined' && firebaseSync.isUserAuthenticated() && updatedLayaway) {
             try {
-                await firebaseSync.uploadSingle('layaways', updatedLayaway);
+                // Use transaction method to prevent overwrite conflicts
+                await firebaseSync.addLayawayPaymentTransaction(
+                    state.currentLayaway.id,
+                    amount,
+                    method,
+                    updatedLayaway
+                );
             } catch (syncError) {
-                console.warn('Firebase sync failed, payment saved locally:', syncError);
+                console.warn('Firebase transaction failed, payment saved locally:', syncError);
+                // Fallback to regular upload if transaction fails
+                await firebaseSync.uploadSingle('layaways', updatedLayaway);
             }
         }
         
