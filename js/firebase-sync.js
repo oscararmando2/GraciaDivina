@@ -604,7 +604,13 @@ function uploadLocalData() {
             var data = Object.assign({}, sale);
             delete data.id;
             data.updatedAt = data.updatedAt || new Date().toISOString();
-            firebaseDb.ref(path).set(data);
+            firebaseDb.ref(path).set(data).then(function() {
+                // Update local item with firebaseKey
+                sale.firebaseKey = key;
+                db.updateSale(sale).catch(function(err) {
+                    console.error('Error actualizando firebaseKey local:', err);
+                });
+            });
         });
     });
 
@@ -647,7 +653,13 @@ function uploadLocalData() {
             var key = 'owner_' + owner.id;
             var path = getFirebasePath('owners') + '/' + key;
             var data = { name: owner.name, updatedAt: new Date().toISOString() };
-            firebaseDb.ref(path).set(data);
+            firebaseDb.ref(path).set(data).then(function() {
+                // Update local item with firebaseKey
+                owner.firebaseKey = key;
+                db.updateOwner(owner).catch(function(err) {
+                    console.error('Error actualizando firebaseKey local:', err);
+                });
+            });
         });
     });
 

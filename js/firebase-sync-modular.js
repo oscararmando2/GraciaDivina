@@ -603,7 +603,9 @@ async function uploadLocalData() {
             const saleRef = modules.ref(firebaseDb, `${getFirebasePath('sales')}/${key}`);
             await modules.set(saleRef, data);
             
-            // Note: Sales don't need firebaseKey updated locally as they're immutable
+            // Update local item with firebaseKey to prevent re-upload
+            sale.firebaseKey = key;
+            await db.updateSale(sale);
         }
         
         // Upload layaways
@@ -643,7 +645,9 @@ async function uploadLocalData() {
             const ownerRef = modules.ref(firebaseDb, `${getFirebasePath('owners')}/${key}`);
             await modules.set(ownerRef, data);
             
-            // Note: Owners don't have an update method, firebaseKey tracking not critical
+            // Update local item with firebaseKey to prevent re-upload
+            owner.firebaseKey = key;
+            await db.updateOwner(owner);
         }
         
         // Upload settings
