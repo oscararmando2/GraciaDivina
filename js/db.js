@@ -313,6 +313,21 @@ class Database {
     }
 
     /**
+     * Update an existing sale
+     */
+    async updateSale(sale) {
+        return new Promise((resolve, reject) => {
+            const store = this.getStore('sales', 'readwrite');
+            sale.updatedAt = new Date().toISOString();
+            
+            const request = store.put(sale);
+            
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    /**
      * Get all sales
      */
     async getAllSales() {
@@ -618,6 +633,21 @@ class Database {
         return new Promise((resolve, reject) => {
             const store = this.getStore('owners');
             const request = store.getAll();
+            
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    /**
+     * Update an existing owner
+     */
+    async updateOwner(owner) {
+        return new Promise((resolve, reject) => {
+            const store = this.getStore('owners', 'readwrite');
+            owner.updatedAt = new Date().toISOString();
+            
+            const request = store.put(owner);
             
             request.onsuccess = () => resolve(request.result);
             request.onerror = () => reject(request.error);
