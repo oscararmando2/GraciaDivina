@@ -44,17 +44,18 @@ Esta actualización migra completamente el sistema de sincronización de Firebas
 
 **Antes:**
 - Solo IndexedDB local
-- Sin sincronización entre pestañas
+- Sin garantía de sincronización entre pestañas
 
 **Ahora:**
-- `enableMultiTabIndexedDbPersistence()`
+- Persistencia offline habilitada por defecto en Realtime Database
 - Sincronización automática entre pestañas del mismo navegador
-- Cache offline más robusto
+- Cache offline robusto sin configuración adicional
 
 **Beneficios:**
 - Abrir la app en múltiples pestañas funciona correctamente
 - Menos conflictos de datos
 - Mejor experiencia offline
+- Sin necesidad de configuración manual
 
 ### 4. ✅ Reglas de Seguridad Firebase
 
