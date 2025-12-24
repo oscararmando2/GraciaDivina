@@ -1907,7 +1907,7 @@ async function viewLayawayDetails(layawayId) {
     
     // Update buttons
     document.getElementById('add-products-to-layaway').style.display = layaway.status === 'pending' ? '' : 'none';
-    document.getElementById('add-layaway-payment').style.display = layaway.status === 'pending' ? '' : 'none';
+    document.getElementById('add-layaway-payment').style.display = (layaway.status === 'pending' && layaway.pendingAmount > 0) ? '' : 'none';
     document.getElementById('complete-layaway-btn').disabled = layaway.pendingAmount > 0;
     document.getElementById('complete-layaway-btn').style.display = layaway.status === 'pending' ? '' : 'none';
     document.getElementById('delete-layaway-btn').style.display = layaway.status === 'pending' ? '' : 'none';
@@ -1919,6 +1919,12 @@ async function viewLayawayDetails(layawayId) {
 
 function openPaymentModal() {
     if (!state.currentLayaway) return;
+    
+    // Prevent opening modal if there's no pending amount
+    if (state.currentLayaway.pendingAmount <= 0) {
+        showToast('Este apartado ya está totalmente pagado', 'info');
+        return;
+    }
     
     document.getElementById('payment-amount').value = '';
     document.getElementById('payment-pending').textContent = formatCurrency(state.currentLayaway.pendingAmount);
