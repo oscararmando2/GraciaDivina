@@ -596,12 +596,25 @@ class Database {
      */
     async searchLayaways(query) {
         const layaways = await this.getAllLayaways();
-        const lowerQuery = query.toLowerCase();
+        const lowerQuery = query.toLowerCase().trim();
         
-        return layaways.filter(layaway => 
-            layaway.customerName.toLowerCase().includes(lowerQuery) ||
-            layaway.customerPhone.includes(query)
-        );
+        // Normalize string for better search (remove accents and special chars)
+        const normalizeString = (str) => {
+            return str.toLowerCase().trim()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '');
+        };
+        
+        const normalizedQuery = normalizeString(query);
+        
+        return layaways.filter(layaway => {
+            const normalizedName = normalizeString(layaway.customerName || '');
+            const normalizedPhone = (layaway.customerPhone || '').replace(/\s+/g, '');
+            const normalizedQueryPhone = query.replace(/\s+/g, '');
+            
+            return normalizedName.includes(normalizedQuery) ||
+                   normalizedPhone.includes(normalizedQueryPhone);
+        });
     }
 
     // ========================================
