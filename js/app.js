@@ -1829,11 +1829,9 @@ async function searchLayaways() {
     }
     
     // Show search results count
-    const searchResultsCount = document.createElement('div');
-    searchResultsCount.style.cssText = 'padding: 12px 20px; background: #F3F4F6; border-bottom: 1px solid #E5E7EB; font-size: 0.875rem; color: #6B7280;';
-    searchResultsCount.innerHTML = `📋 ${layaways.length} apartado${layaways.length !== 1 ? 's' : ''} encontrado${layaways.length !== 1 ? 's' : ''} para "${escapeHtml(query)}"`;
+    const searchResultsHTML = `<div class="layaway-search-results">📋 ${layaways.length} apartado${layaways.length !== 1 ? 's' : ''} encontrado${layaways.length !== 1 ? 's' : ''} para "${escapeHtml(query)}"</div>`;
     
-    container.innerHTML = layaways.map(layaway => `
+    const layawaysHTML = layaways.map(layaway => `
         <div class="layaway-card ${layaway.status}" onclick="viewLayawayDetails(${layaway.id})">
             <div class="layaway-info">
                 <h4>
@@ -1855,8 +1853,7 @@ async function searchLayaways() {
         </div>
     `).join('');
     
-    // Prepend search results count
-    container.insertAdjacentElement('afterbegin', searchResultsCount);
+    container.innerHTML = searchResultsHTML + layawaysHTML;
 }
 
 async function viewLayawayDetails(layawayId) {

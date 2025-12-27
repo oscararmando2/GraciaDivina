@@ -596,21 +596,25 @@ class Database {
      */
     async searchLayaways(query) {
         const layaways = await this.getAllLayaways();
-        const lowerQuery = query.toLowerCase().trim();
         
-        // Normalize string for better search (remove accents and special chars)
+        // Helper function to normalize strings (remove accents, lowercase, trim)
         const normalizeString = (str) => {
             return str.toLowerCase().trim()
                 .normalize('NFD')
                 .replace(/[\u0300-\u036f]/g, '');
         };
         
+        // Helper function to normalize phone numbers (remove spaces and special chars)
+        const normalizePhone = (phone) => {
+            return phone.replace(/[\s\-()]/g, '');
+        };
+        
         const normalizedQuery = normalizeString(query);
+        const normalizedQueryPhone = normalizePhone(query);
         
         return layaways.filter(layaway => {
             const normalizedName = normalizeString(layaway.customerName || '');
-            const normalizedPhone = (layaway.customerPhone || '').replace(/\s+/g, '');
-            const normalizedQueryPhone = query.replace(/\s+/g, '');
+            const normalizedPhone = normalizePhone(layaway.customerPhone || '');
             
             return normalizedName.includes(normalizedQuery) ||
                    normalizedPhone.includes(normalizedQueryPhone);
