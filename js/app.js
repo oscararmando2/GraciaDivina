@@ -1634,6 +1634,12 @@ async function loadLayaways() {
     try {
         console.log('Cargando apartados...');
         
+        // Clear search input when loading layaways page
+        const searchInput = document.getElementById('layaway-search');
+        if (searchInput) {
+            searchInput.value = '';
+        }
+        
         // Cargar datos localmente desde IndexedDB
         let layaways = await db.getAllLayaways();
         console.log('Total de apartados en base de datos:', layaways.length);
@@ -1816,12 +1822,16 @@ async function searchLayaways() {
             <div class="cart-empty" style="padding: 60px;">
                 <span class="empty-icon">🔍</span>
                 <p>No se encontraron apartados</p>
+                <small>No hay apartados que coincidan con "${escapeHtml(query)}"</small>
             </div>
         `;
         return;
     }
     
-    container.innerHTML = layaways.map(layaway => `
+    // Show search results count
+    const searchResultsHTML = `<div class="layaway-search-results">📋 ${layaways.length} apartado${layaways.length !== 1 ? 's' : ''} encontrado${layaways.length !== 1 ? 's' : ''} para "${escapeHtml(query)}"</div>`;
+    
+    const layawaysHTML = layaways.map(layaway => `
         <div class="layaway-card ${layaway.status}" onclick="viewLayawayDetails(${layaway.id})">
             <div class="layaway-info">
                 <h4>
@@ -1842,6 +1852,8 @@ async function searchLayaways() {
             </div>
         </div>
     `).join('');
+    
+    container.innerHTML = searchResultsHTML + layawaysHTML;
 }
 
 async function viewLayawayDetails(layawayId) {
