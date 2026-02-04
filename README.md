@@ -158,6 +158,60 @@ Aunque la sincronización en la nube es automática, puedes crear respaldos adic
 - ✅ Safari 11.1+
 - ✅ Opera 47+
 
+## 👨‍💻 Para Desarrolladores
+
+### Modo Debug
+El sistema incluye utilidades de depuración que están deshabilitadas por defecto en producción:
+
+```javascript
+// En js/app.js
+const DEBUG_MODE = false; // Cambiar a true para habilitar logs
+
+// En js/firebase-sync-modular.js
+const FIREBASE_DEBUG_MODE = false; // Cambiar a true para logs de Firebase
+
+// En sw.js
+const SW_DEBUG_MODE = false; // Cambiar a true para logs del Service Worker
+```
+
+### Seguridad
+
+La aplicación implementa múltiples capas de seguridad:
+
+1. **Protección XSS**: Todos los datos de usuario son escapados antes de ser renderizados en HTML usando la función `escapeHtml()`
+2. **Firebase Security Rules**: Autenticación requerida para acceder a la base de datos
+3. **Validación de Entrada**: 
+   - Precios limitados a máximo $999,999.99
+   - Stock limitado a máximo 999,999 unidades
+   - Validación HTML5 en todos los formularios
+4. **API Keys Públicas**: Las API keys de Firebase están diseñadas para ser públicas en aplicaciones web cliente. La seguridad se aplica mediante Firebase Security Rules.
+
+### Optimización
+
+- **Service Worker**: Cache inteligente con estrategia network-first
+- **IndexedDB**: Almacenamiento local para funcionamiento offline
+- **Firebase Offline Persistence**: Habilitada por defecto
+- **Debouncing**: Implementado en búsquedas y actualizaciones de UI
+
+### Estructura de Logging
+
+El sistema utiliza utilidades de logging condicional que pueden ser habilitadas/deshabilitadas:
+
+```javascript
+// App logs
+debug.log('Mensaje informativo');
+debug.warn('Advertencia');
+debug.error('Error'); // Siempre se muestra
+
+// Firebase logs
+fbDebug.log('Sincronización exitosa');
+fbDebug.error('Error de Firebase'); // Siempre se muestra
+
+// Service Worker logs
+swLog('Cache actualizado');
+swError('Error en SW'); // Siempre se muestra
+```
+
 ## 📝 Licencia
 
 Este proyecto está bajo la Licencia MIT.
