@@ -305,7 +305,7 @@ function setupRealtimeListeners() {
             const data = snapshot.val();
             if (!data) return;
             
-            console.log(`📡 Data received for ${col}:`, Object.keys(data).length, 'items');
+            fbDebug.log(`📡 Data received for ${col}:`, Object.keys(data).length, 'items');
             
             // Process each item
             Object.keys(data).forEach((key) => {
@@ -314,10 +314,15 @@ function setupRealtimeListeners() {
             
             // Reload UI for the affected collection
             reloadUIForCollection(col);
+        }, (error) => {
+            // Error handler for real-time listener failures
+            fbDebug.error(`✗ Real-time listener error for ${col}:`, error);
+            // Update connection status to show issue
+            updateConnectionStatus(false);
         });
     });
     
-    console.log('✓ Real-time listeners configured');
+    fbDebug.log('✓ Real-time listeners configured');
 }
 
 /**
@@ -432,7 +437,31 @@ async function saveToLocal(collection, firebaseKey, data) {
                 break;
                 
             case 'sales':
-                // Sales are created locally and synced up
+                // Sync sales from Firebase to local
+                const sales = await db.getAllSales();
+                const existingSale = sales.find(s =>
+                    s.firebaseKey === firebaseKey ||
+                    (s.ticketNumber && record.ticketNumber && s.ticketNumber === record.ticketNumber)
+                );
+                
+                if (!existingSale) {
+                    // Add new sale from Firebase
+                    const store = db.getStore('sales', 'readwrite');
+                    await new Promise((resolve, reject) => {
+                        const request = store.add(record);
+                        request.onsuccess = () => resolve();
+                        request.onerror = () => reject(request.error);
+                    });
+                } else if (!existingSale.firebaseKey) {
+                    // Update existing sale to add firebaseKey
+                    existingSale.firebaseKey = firebaseKey;
+                    const store = db.getStore('sales', 'readwrite');
+                    await new Promise((resolve, reject) => {
+                        const request = store.put(existingSale);
+                        request.onsuccess = () => resolve();
+                        request.onerror = () => reject(request.error);
+                    });
+                }
                 break;
                 
             case 'layaways':
