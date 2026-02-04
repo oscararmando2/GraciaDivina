@@ -813,7 +813,8 @@ async function completeSale() {
         closeAllModals();
         
         // Refresh products to show updated stock
-        const activeCategory = document.querySelector('.category-tab.active').dataset.category;
+        const activeCategoryElement = document.querySelector('.category-tab.active');
+        const activeCategory = activeCategoryElement ? activeCategoryElement.dataset.category : 'all';
         const searchQuery = document.getElementById('product-search').value;
         await loadProducts(activeCategory, searchQuery);
         
@@ -827,7 +828,7 @@ async function completeSale() {
         
     } catch (error) {
         console.error('Error completing sale:', error);
-        showToast('Error al procesar la venta', 'error');
+        showToast(`Error al procesar la venta: ${error.message || 'Error desconocido'}`, 'error');
     }
 }
 
@@ -1033,7 +1034,7 @@ async function saveProduct() {
         
     } catch (error) {
         console.error('Error saving product:', error);
-        showToast('Error al guardar el producto', 'error');
+        showToast(`Error al guardar el producto: ${error.message || 'Error desconocido'}`, 'error');
     }
 }
 
@@ -1061,7 +1062,7 @@ async function deleteProduct(productId) {
         await loadProducts();
     } catch (error) {
         console.error('Error deleting product:', error);
-        showToast('Error al eliminar el producto', 'error');
+        showToast(`Error al eliminar el producto: ${error.message || 'Error desconocido'}`, 'error');
     }
 }
 
