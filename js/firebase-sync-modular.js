@@ -7,6 +7,17 @@
  * See: https://firebase.google.com/docs/projects/api-keys
  */
 
+// Debug configuration
+const FIREBASE_DEBUG_MODE = false; // Set to false in production
+
+// Debug logging utility for Firebase operations
+const fbDebug = {
+    log: (...args) => FIREBASE_DEBUG_MODE && console.log(...args),
+    warn: (...args) => FIREBASE_DEBUG_MODE && console.warn(...args),
+    error: (...args) => console.error(...args), // Always log errors
+    info: (...args) => FIREBASE_DEBUG_MODE && console.info(...args)
+};
+
 // Firebase modules will be loaded from index.html
 let firebaseApp = null;
 let firebaseDb = null;
@@ -113,12 +124,12 @@ async function initFirebase() {
 
         // Note: Realtime Database (not Firestore) has offline persistence enabled by default
         // There is no explicit API call needed - it works automatically
-        console.log('✓ Firebase initialized successfully (modular SDK)');
-        console.log('✓ Realtime Database offline persistence is enabled by default');
+        fbDebug.log('✓ Firebase initialized successfully (modular SDK)');
+        fbDebug.log('✓ Realtime Database offline persistence is enabled by default');
         
         return true;
     } catch (error) {
-        console.error('✗ Error initializing Firebase:', error);
+        fbDebug.error('✗ Error initializing Firebase:', error);
         updateConnectionStatus('offline', 'Error de conexión');
         showFirebaseWarning();
         return false;
@@ -182,7 +193,7 @@ function updateConnectionStatus(status, message) {
  */
 async function autoLogin() {
     if (!firebaseAuth) {
-        console.warn('Firebase Auth not available');
+        fbDebug.warn('Firebase Auth not available');
         return;
     }
 
@@ -192,7 +203,7 @@ async function autoLogin() {
         currentUserId = userCredential.user.uid;
         isLoggedIn = true;
         
-        console.log('✓ Anonymous login successful - User ID:', currentUserId);
+        fbDebug.log('✓ Anonymous login successful - User ID:', currentUserId);
         updateConnectionStatus('online', 'Conectado a la nube');
         
         // Hide warning banner if exists
@@ -505,7 +516,7 @@ async function saveToLocal(collection, firebaseKey, data) {
                 break;
         }
     } catch (error) {
-        console.error('Error saving to local:', error);
+        fbDebug.error('Error saving to local:', error);
     }
 }
 
@@ -547,7 +558,7 @@ async function deleteFromLocal(collection, firebaseKey) {
                 break;
         }
     } catch (error) {
-        console.error('Error deleting from local:', error);
+        fbDebug.error('Error deleting from local:', error);
     }
 }
 
@@ -659,9 +670,9 @@ async function uploadLocalData() {
             await modules.set(settingRef, data);
         }
         
-        console.log('✓ Local data uploaded to Firebase');
+        fbDebug.log('✓ Local data uploaded to Firebase');
     } catch (error) {
-        console.error('Error uploading local data:', error);
+        fbDebug.error('Error uploading local data:', error);
     }
 }
 
