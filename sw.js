@@ -1,4 +1,6 @@
-const CACHE_NAME = 'gracia-divina-v1';
+const CACHE_NAME = 'gracia-divina-v2';  // Incremented version for new changes
+const SW_DEBUG_MODE = false;  // Set to false in production
+
 const STATIC_ASSETS = [
     '/',
     '/index.html',
@@ -6,6 +8,7 @@ const STATIC_ASSETS = [
     '/css/styles.css',
     '/js/app.js',
     '/js/db.js',
+    '/js/firebase-sync-modular.js',  // Added firebase sync file
     '/icons/icon-72x72.png',
     '/icons/icon-96x96.png',
     '/icons/icon-128x128.png',
@@ -16,42 +19,47 @@ const STATIC_ASSETS = [
     '/icons/icon-512x512.png'
 ];
 
+// Debug logging utility for Service Worker
+const swLog = (...args) => SW_DEBUG_MODE && console.log('[ServiceWorker]', ...args);
+const swError = (...args) => console.error('[ServiceWorker]', ...args);
+
 // Install Event - Cache static assets
 self.addEventListener('install', event => {
-    console.log('[ServiceWorker] Installing...');
+    swLog('Installing...');
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then(cache => {
-                console.log('[ServiceWorker] Caching static assets');
+                swLog('Caching static assets');
                 return cache.addAll(STATIC_ASSETS);
             })
             .then(() => {
-                console.log('[ServiceWorker] Install complete');
+                swLog('Install complete');
                 return self.skipWaiting();
             })
             .catch(error => {
-                console.error('[ServiceWorker] Install failed:', error);
+                swError('Install failed:', error);
             })
     );
+});
 });
 
 // Activate Event - Clean up old caches
 self.addEventListener('activate', event => {
-    console.log('[ServiceWorker] Activating...');
+    swLog('Activating...');
     event.waitUntil(
         caches.keys()
             .then(cacheNames => {
                 return Promise.all(
                     cacheNames.map(cacheName => {
                         if (cacheName !== CACHE_NAME) {
-                            console.log('[ServiceWorker] Deleting old cache:', cacheName);
+                            swLog('Deleting old cache:', cacheName);
                             return caches.delete(cacheName);
                         }
                     })
                 );
             })
             .then(() => {
-                console.log('[ServiceWorker] Activation complete');
+                swLog('Activation complete');
                 return self.clients.claim();
             })
     );
@@ -113,7 +121,7 @@ self.addEventListener('fetch', event => {
 
 // Handle background sync
 self.addEventListener('sync', event => {
-    console.log('[ServiceWorker] Background sync:', event.tag);
+    swLog('Background sync:', event.tag);
     if (event.tag === 'sync-sales') {
         event.waitUntil(syncSales());
     }
@@ -123,7 +131,7 @@ self.addEventListener('sync', event => {
 async function syncSales() {
     // This would sync sales data to a server when online
     // For now, it's a placeholder for future functionality
-    console.log('[ServiceWorker] Syncing sales data...');
+    swLog('Syncing sales data...');
 }
 
 // Handle push notifications

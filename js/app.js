@@ -3,6 +3,19 @@
  */
 
 // ========================================
+// DEBUG CONFIGURATION
+// ========================================
+const DEBUG_MODE = false; // Set to false in production
+
+// Debug logging utility - only logs when DEBUG_MODE is true
+const debug = {
+    log: (...args) => DEBUG_MODE && console.log(...args),
+    warn: (...args) => DEBUG_MODE && console.warn(...args),
+    error: (...args) => console.error(...args), // Always log errors
+    info: (...args) => DEBUG_MODE && console.info(...args)
+};
+
+// ========================================
 // CONSTANTS
 // ========================================
 const MOBILE_BREAKPOINT = 768;
@@ -800,7 +813,8 @@ async function completeSale() {
         closeAllModals();
         
         // Refresh products to show updated stock
-        const activeCategory = document.querySelector('.category-tab.active').dataset.category;
+        const activeCategoryElement = document.querySelector('.category-tab.active');
+        const activeCategory = activeCategoryElement ? activeCategoryElement.dataset.category : 'all';
         const searchQuery = document.getElementById('product-search').value;
         await loadProducts(activeCategory, searchQuery);
         
@@ -814,7 +828,7 @@ async function completeSale() {
         
     } catch (error) {
         console.error('Error completing sale:', error);
-        showToast('Error al procesar la venta', 'error');
+        showToast(`Error al procesar la venta: ${error.message || 'Error desconocido'}`, 'error');
     }
 }
 
@@ -1020,7 +1034,7 @@ async function saveProduct() {
         
     } catch (error) {
         console.error('Error saving product:', error);
-        showToast('Error al guardar el producto', 'error');
+        showToast(`Error al guardar el producto: ${error.message || 'Error desconocido'}`, 'error');
     }
 }
 
@@ -1048,7 +1062,7 @@ async function deleteProduct(productId) {
         await loadProducts();
     } catch (error) {
         console.error('Error deleting product:', error);
-        showToast('Error al eliminar el producto', 'error');
+        showToast(`Error al eliminar el producto: ${error.message || 'Error desconocido'}`, 'error');
     }
 }
 
@@ -1218,7 +1232,7 @@ function printTicket() {
         <!DOCTYPE html>
         <html>
         <head>
-            <title>Ticket - ${sale.ticketNumber}</title>
+            <title>Ticket - ${escapeHtml(sale.ticketNumber)}</title>
             <style>
                 body { font-family: 'Courier New', monospace; font-size: 12px; max-width: 300px; margin: 0 auto; padding: 20px; }
                 .ticket-logo { text-align: center; font-size: 2rem; margin-bottom: 10px; }
@@ -1236,16 +1250,16 @@ function printTicket() {
         <body>
             <div class="ticket-logo">✨</div>
             <div class="ticket-header">
-                <h2>${state.settings.businessName}</h2>
+                <h2>${escapeHtml(state.settings.businessName)}</h2>
             </div>
             <div class="ticket-info">
-                <p>Ticket: ${sale.ticketNumber}</p>
-                <p>Fecha: ${formatDateTime(sale.date)}</p>
+                <p>Ticket: ${escapeHtml(sale.ticketNumber)}</p>
+                <p>Fecha: ${escapeHtml(formatDateTime(sale.date))}</p>
             </div>
             <div class="ticket-items">
                 ${sale.items.map(item => `
                     <div class="ticket-item">
-                        <span>${item.quantity}x ${item.name}</span>
+                        <span>${item.quantity}x ${escapeHtml(item.name)}</span>
                         <span>${formatCurrency(item.subtotal)}</span>
                     </div>
                 `).join('')}
@@ -1257,7 +1271,7 @@ function printTicket() {
                 </div>
             </div>
             <div class="ticket-footer">
-                <p>${state.settings.ticketFooter || '¡Gracias por elegir Gracia Divina!'}</p>
+                <p>${escapeHtml(state.settings.ticketFooter || '¡Gracias por elegir Gracia Divina!')}</p>
             </div>
         </body>
         </html>
@@ -2091,8 +2105,8 @@ function exportLayawayPDF() {
     // Generate payments history HTML
     const paymentsHTML = layaway.payments.map(payment => `
         <tr>
-            <td style="padding: 8px; border-bottom: 1px solid #ddd;">${formatDateTime(payment.date)}</td>
-            <td style="padding: 8px; border-bottom: 1px solid #ddd;">${payment.paymentMethod}</td>
+            <td style="padding: 8px; border-bottom: 1px solid #ddd;">${escapeHtml(formatDateTime(payment.date))}</td>
+            <td style="padding: 8px; border-bottom: 1px solid #ddd;">${escapeHtml(payment.paymentMethod)}</td>
             <td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: right; color: #10B981; font-weight: bold;">${formatCurrency(payment.amount)}</td>
         </tr>
     `).join('');
@@ -2225,17 +2239,17 @@ function exportLayawayPDF() {
         <body>
             <div class="header">
                 <div class="logo">✨</div>
-                <h1>${state.settings.businessName || 'Gracia Divina'}</h1>
-                ${state.settings.businessPhone ? `<p>📞 ${state.settings.businessPhone}</p>` : ''}
-                ${state.settings.businessAddress ? `<p>📍 ${state.settings.businessAddress}</p>` : ''}
+                <h1>${escapeHtml(state.settings.businessName || 'Gracia Divina')}</h1>
+                ${state.settings.businessPhone ? `<p>📞 ${escapeHtml(state.settings.businessPhone)}</p>` : ''}
+                ${state.settings.businessAddress ? `<p>📍 ${escapeHtml(state.settings.businessAddress)}</p>` : ''}
                 <p style="margin-top: 15px; font-size: 1.2em; font-weight: bold;">Detalle de Apartado</p>
             </div>
             
             <div class="customer-info">
-                <h3>👤 Información del Cliente <span class="status-badge">${statusText}</span></h3>
+                <h3>👤 Información del Cliente <span class="status-badge">${escapeHtml(statusText)}</span></h3>
                 <p><strong>Nombre:</strong> ${escapeHtml(layaway.customerName)}</p>
                 <p><strong>Teléfono:</strong> ${escapeHtml(layaway.customerPhone)}</p>
-                <p><strong>Fecha de Creación:</strong> ${formatDateTime(layaway.date)}</p>
+                <p><strong>Fecha de Creación:</strong> ${escapeHtml(formatDateTime(layaway.date))}</p>
             </div>
             
             <div class="section">
@@ -2760,7 +2774,7 @@ function printReport() {
         <!DOCTYPE html>
         <html>
         <head>
-            <title>Cierre de Caja - ${reportDate}</title>
+            <title>Cierre de Caja - ${escapeHtml(reportDate)}</title>
             <style>
                 body { font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; }
                 h2 { text-align: center; margin-bottom: 20px; }
@@ -2778,7 +2792,7 @@ function printReport() {
         </head>
         <body>
             <h2>✨ Gracia Divina - Cierre de Caja</h2>
-            <p style="text-align: center;">Fecha: ${reportDate}</p>
+            <p style="text-align: center;">Fecha: ${escapeHtml(reportDate)}</p>
             ${reportContent}
         </body>
         </html>
